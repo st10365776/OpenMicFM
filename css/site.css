@@ -1,0 +1,116 @@
+/* Site-wide design tokens. Change branding and spacing here. */
+:root {
+  --color-brand: #ff2b16;
+  --color-brand-dark: #d91d0b;
+  --color-ink: #111;
+  --color-muted: #666;
+  --color-surface: #fff;
+  --color-header: #050505;
+  --content-width: 1240px;
+  --space-page: clamp(32px, 6vw, 72px);
+  --radius-control: 10px;
+}
+
+/* Predictable sizing and media behavior across every page. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+
+img,
+video,
+iframe {
+  max-width: 100%;
+}
+
+/* Shared header and logo treatment. */
+.site-header {
+  background: var(--color-header);
+}
+
+.site-header .custom-logo-link img,
+.site-header .site-logo-img img {
+  width: 231px;
+  height: 77px;
+  max-width: 231px;
+  object-fit: contain;
+}
+
+/* Active and interactive navigation states. */
+.site-header .menu-link:hover,
+.site-header .menu-link:focus-visible,
+.site-header .current-menu-item > .menu-link {
+  color: var(--color-brand);
+}
+
+/* Shared button shape. Colors remain controlled by the exported theme rules. */
+.ast-custom-button,
+.wp-block-button__link,
+button,
+input[type="submit"] {
+  border-radius: var(--radius-control);
+}
+
+/* Keep page content centered and readable on wide screens. */
+.site-content > .ast-container {
+  width: min(100% - 48px, var(--content-width));
+  margin-inline: auto;
+}
+
+/* Shared footer treatment and contact accent. */
+.site-footer {
+  background: var(--color-header);
+}
+
+.custom-footer-contact {
+  background: transparent;
+}
+
+.footer-contact-box h4 {
+  color: var(--color-brand);
+}
+
+.footer-contact-box a:hover,
+.footer-contact-box a:focus-visible {
+  color: var(--color-brand);
+}
+
+/* National News archive card layout. */
+.page-id-713 .site-content > .ast-container {
+  width: min(100% - 48px, var(--content-width));
+  padding-block: var(--space-page);
+}
+
+.page-id-713 .uagb-post-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 285px));
+  gap: 20px;
+  justify-content: start;
+}
+
+.page-id-713 .uagb-post__inner-wrap {
+  min-height: 426px;
+}
+
+@media (max-width: 640px) {
+  .site-content > .ast-container,
+  .page-id-713 .site-content > .ast-container {
+    width: min(100% - 32px, var(--content-width));
+  }
+
+  .page-id-713 .uagb-post-grid {
+    grid-template-columns: minmax(0, 285px);
+  }
+}
