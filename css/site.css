@@ -1,116 +1,410 @@
 /* Site-wide design tokens. Change branding and spacing here. */
+
 :root {
+
   --color-brand: #ff2b16;
+
   --color-brand-dark: #d91d0b;
+
   --color-ink: #111;
+
   --color-muted: #666;
+
   --color-surface: #fff;
+
   --color-header: #050505;
+
   --content-width: 1240px;
+
   --space-page: clamp(32px, 6vw, 72px);
+
   --radius-control: 10px;
+
 }
 
 /* Predictable sizing and media behavior across every page. */
+
 *,
 *::before,
 *::after {
+
   box-sizing: border-box;
+
 }
 
 html,
 body {
+
   max-width: 100%;
+
   overflow-x: hidden;
+
 }
 
 body {
+
   color: var(--color-ink);
+
   background: var(--color-surface);
+
 }
 
 img,
 video,
 iframe {
+
   max-width: 100%;
+
 }
 
 /* Shared header and logo treatment. */
+
 .site-header {
+
   background: var(--color-header);
+
 }
 
 .site-header .custom-logo-link img,
 .site-header .site-logo-img img {
+
   width: 231px;
+
   height: 77px;
+
   max-width: 231px;
+
   object-fit: contain;
+
 }
 
 /* Active and interactive navigation states. */
+
 .site-header .menu-link:hover,
 .site-header .menu-link:focus-visible,
 .site-header .current-menu-item > .menu-link {
+
   color: var(--color-brand);
+
 }
 
 /* Shared button shape. Colors remain controlled by the exported theme rules. */
+
 .ast-custom-button,
 .wp-block-button__link,
 button,
 input[type="submit"] {
+
   border-radius: var(--radius-control);
+
 }
 
 /* Keep page content centered and readable on wide screens. */
+
 .site-content > .ast-container {
+
   width: min(100% - 48px, var(--content-width));
+
   margin-inline: auto;
+
 }
 
 /* Shared footer treatment and contact accent. */
+
 .site-footer {
+
   background: var(--color-header);
+
 }
 
 .custom-footer-contact {
+
   background: transparent;
+
 }
 
 .footer-contact-box h4 {
+
   color: var(--color-brand);
+
 }
 
 .footer-contact-box a:hover,
 .footer-contact-box a:focus-visible {
+
   color: var(--color-brand);
+
 }
 
 /* National News archive card layout. */
+
 .page-id-713 .site-content > .ast-container {
+
   width: min(100% - 48px, var(--content-width));
+
   padding-block: var(--space-page);
+
 }
 
 .page-id-713 .uagb-post-grid {
+
   display: grid;
+
   grid-template-columns: repeat(2, minmax(0, 285px));
+
   gap: 20px;
+
   justify-content: start;
+
 }
 
 .page-id-713 .uagb-post__inner-wrap {
+
   min-height: 426px;
+
 }
 
 @media (max-width: 640px) {
+
   .site-content > .ast-container,
   .page-id-713 .site-content > .ast-container {
+
     width: min(100% - 32px, var(--content-width));
+
   }
 
   .page-id-713 .uagb-post-grid {
+
     grid-template-columns: minmax(0, 285px);
+
   }
+
+}
+
+
+/* =========================================
+   CONTACT PAGE FORM STYLING
+========================================= */
+
+.srfm-form-container-513 {
+
+  max-width: 900px;
+
+  width: calc(100% - 40px);
+
+  margin: 30px auto 60px auto;
+
+  padding: 35px 40px !important;
+
+  background: #ffffff !important;
+
+  border-radius: 14px;
+
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+
+}
+
+/* Contact form layout */
+
+#srfm-form-513 {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 20px;
+
+}
+
+/* First Name and Last Name */
+
+#srfm-form-513 .srfm-block-width-50 {
+
+  width: calc(50% - 10px) !important;
+
+  flex: 0 0 calc(50% - 10px);
+
+}
+
+/* Email Address and Message */
+
+#srfm-form-513 .srfm-block-width-100 {
+
+  width: 100% !important;
+
+  flex: 0 0 100%;
+
+}
+
+/* Input fields */
+
+#srfm-form-513 input[type="text"],
+#srfm-form-513 input[type="email"],
+#srfm-form-513 textarea {
+
+  width: 100% !important;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d9d9d9 !important;
+
+  background-color: #f8f8f8 !important;
+
+  color: #111111 !important;
+
+  font-size: 16px !important;
+
+  font-family: inherit;
+
+  border-radius: 8px !important;
+
+  outline: none !important;
+
+  transition: border-color 0.25s ease, box-shadow 0.25s ease,
+    background-color 0.25s ease;
+
+}
+
+/* First Name, Last Name and Email height */
+
+#srfm-form-513 input[type="text"],
+#srfm-form-513 input[type="email"] {
+
+  height: 52px !important;
+
+  padding: 0 16px !important;
+
+}
+
+/* Message field */
+
+#srfm-form-513 textarea {
+
+  min-height: 150px !important;
+
+  padding: 15px 16px !important;
+
+  resize: vertical;
+
+}
+
+/* Placeholder text */
+
+#srfm-form-513 input::placeholder,
+#srfm-form-513 textarea::placeholder {
+
+  color: #777777 !important;
+
+  opacity: 1;
+
+}
+
+/* Fields when mouse is over them */
+
+#srfm-form-513 input[type="text"]:hover,
+#srfm-form-513 input[type="email"]:hover,
+#srfm-form-513 textarea:hover {
+
+  border-color: #aaaaaa !important;
+
+}
+
+/* Fields when user clicks inside */
+
+#srfm-form-513 input[type="text"]:focus,
+#srfm-form-513 input[type="email"]:focus,
+#srfm-form-513 textarea:focus {
+
+  background-color: #ffffff !important;
+
+  border-color: var(--color-brand) !important;
+
+  box-shadow: 0 0 0 3px rgba(255, 43, 22, 0.12) !important;
+
+}
+
+/* Submit button area */
+
+#srfm-form-513 .srfm-submit-container {
+
+  width: 100%;
+
+  flex: 0 0 100%;
+
+  margin-top: 5px;
+
+}
+
+/* Submit button */
+
+#srfm-form-513 #srfm-submit-btn {
+
+  background-color: var(--color-brand) !important;
+
+  color: #ffffff !important;
+
+  border: none !important;
+
+  border-radius: var(--radius-control) !important;
+
+  padding: 13px 30px !important;
+
+  min-width: 130px;
+
+  font-size: 16px !important;
+
+  font-weight: 600 !important;
+
+  cursor: pointer;
+
+  transition: background-color 0.25s ease,
+    transform 0.25s ease;
+
+}
+
+/* Submit button hover */
+
+#srfm-form-513 #srfm-submit-btn:hover {
+
+  background-color: var(--color-brand-dark) !important;
+
+  transform: translateY(-2px);
+
+}
+
+
+/* =========================================
+   CONTACT PAGE - MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+
+  .srfm-form-container-513 {
+
+    width: calc(100% - 30px);
+
+    margin: 20px auto 40px auto;
+
+    padding: 25px 20px !important;
+
+  }
+
+  /* Put First Name and Last Name underneath each other */
+
+  #srfm-form-513 .srfm-block-width-50 {
+
+    width: 100% !important;
+
+    flex: 0 0 100%;
+
+  }
+
+  /* Full width submit button on mobile */
+
+  #srfm-form-513 #srfm-submit-btn {
+
+    width: 100%;
+
+  }
+
 }
