@@ -15,6 +15,14 @@
 
     var menuToggle = navMount.querySelector('.shared-site-menu-toggle');
     var menu = navMount.querySelector('.shared-site-nav');
+    var listenLink = navMount.querySelector('.shared-site-listen');
+    if (listenLink) {
+      document.querySelectorAll('.elementor-page-299 .elementor-widget-button a').forEach(function (button) {
+        button.setAttribute('href', listenLink.getAttribute('href'));
+        button.setAttribute('target', '_blank');
+        button.setAttribute('rel', 'noopener noreferrer');
+      });
+    }
     if (menuToggle && menu) {
       menuToggle.addEventListener('click', function () {
         var isOpen = menu.classList.toggle('is-open');
@@ -49,6 +57,47 @@
           renderNavigation(navMount, isArticlePage, fallbackNavigation);
         });
     }
+  }
+
+  function renderFooter(footerMount, isArticlePage, markup) {
+    footerMount.innerHTML = markup;
+    if (isArticlePage) {
+      footerMount.querySelectorAll('a[href^="./"]').forEach(function (link) {
+        link.setAttribute('href', '../' + link.getAttribute('href').slice(2));
+      });
+    }
+  }
+
+  var legacyFooter = document.querySelector('footer.site-footer');
+  if (legacyFooter) {
+    legacyFooter.remove();
+  }
+
+  var footerMount = document.getElementById('site-footer');
+  if (!footerMount) {
+    footerMount = document.createElement('div');
+    footerMount.id = 'site-footer';
+    document.body.appendChild(footerMount);
+  }
+
+  var footerPath = isArticlePage ? '../footer.html' : './footer.html';
+  var fallbackFooter = '<footer class="shared-site-footer" id="site-footer-content"><div class="shared-site-footer-inner"><div class="shared-site-footer-contact"><div class="footer-contact-box"><h4>Email</h4><p><a href="mailto:info@openmicfm.co.za">info@openmicfm.co.za</a></p></div><div class="footer-contact-box"><h4>Phone</h4><p><a href="tel:+27414644471">+27 41 464 4471</a></p></div><div class="footer-contact-box"><h4>Location</h4><p>Pier 14 Shopping Mall, Nelson Mandela Bay, South Africa, 6001</p></div></div><nav class="shared-site-footer-nav" aria-label="Footer navigation"><a href="' + (isArticlePage ? '../' : './') + 'index.html">Home</a><a href="' + (isArticlePage ? '../' : './') + 'shows.html">Shows</a><a href="' + (isArticlePage ? '../' : './') + 'sports.html">Sport</a><a href="' + (isArticlePage ? '../' : './') + 'news.html">News</a><a href="' + (isArticlePage ? '../' : './') + 'local.html">Local News</a><a href="' + (isArticlePage ? '../' : './') + 'national-news.html">National News</a><a href="' + (isArticlePage ? '../' : './') + 'entertainment.html">Entertainment</a><a href="' + (isArticlePage ? '../' : './') + 'about.html">About</a><a href="' + (isArticlePage ? '../' : './') + 'contact.html">Contact</a></nav><p class="shared-site-footer-copyright">Copyright &copy; 2026 The Station With Progresss</p></div></footer>';
+  if (typeof fetch !== 'function') {
+    renderFooter(footerMount, isArticlePage, fallbackFooter);
+  } else {
+    fetch(footerPath)
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Footer request failed');
+        }
+        return response.text();
+      })
+      .then(function (markup) {
+        renderFooter(footerMount, isArticlePage, markup);
+      })
+      .catch(function () {
+        renderFooter(footerMount, isArticlePage, fallbackFooter);
+      });
   }
 
   // Fallbacks for WordPress-style URLs that may still exist in exported markup.
