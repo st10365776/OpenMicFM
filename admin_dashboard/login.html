@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Login | OpenMicFM</title>
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <main class="admin-app">
+    <section class="login-view" id="login-view" aria-labelledby="login-title">
+      <div class="login-brand"><img src="../images/logo.png" alt="OpenMicFM"><span>Station manager</span></div>
+      <div class="login-card">
+        <p class="eyebrow">OPENMICFM / CONTROL ROOM</p>
+        <h1 id="login-title">Good morning.<br><em>Let’s go live.</em></h1>
+        <p class="login-intro">Sign in to shape today’s sound, stories, and sport.</p>
+        <form id="login-form">
+          <label for="login-email">Email address</label>
+          <input id="login-email" name="email" type="email" value="manager@openmicfm.co.za" autocomplete="username" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" value="123" autocomplete="current-password" required>
+          <button class="button button-primary button-wide" type="submit">Enter the studio <span aria-hidden="true">→</span></button>
+          <p class="form-message" id="login-message" role="alert"></p>
+        </form>
+        <p class="demo-note">Local demo access: <strong>manager@openmicfm.co.za</strong> / <strong>123</strong></p>
+      </div>
+      <p class="login-foot">Broadcasting from Mthatha, Eastern Cape <span>•</span> 2026</p>
+    </section>
+  </main>
+  <script src="../js/admin.js"></script>
+</body>
+</html>
