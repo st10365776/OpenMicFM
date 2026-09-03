@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Station Manager | OpenMicFM</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <main class="admin-app">
+    <section class="login-view" id="login-view" aria-labelledby="login-title">
+      <div class="login-brand">
+        <img src="images/logo.png" alt="OpenMicFM">
+        <span>Station manager</span>
+      </div>
+      <div class="login-card">
+        <p class="eyebrow">OPENMICFM / CONTROL ROOM</p>
+        <h1 id="login-title">Good morning.<br><em>Let’s go live.</em></h1>
+        <p class="login-intro">Sign in to shape today’s sound, stories, and sport.</p>
+        <form id="login-form">
+          <label for="login-email">Email address</label>
+          <input id="login-email" name="email" type="email" value="manager@openmicfm.co.za" autocomplete="username" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" value="openmic" autocomplete="current-password" required>
+          <button class="button button-primary button-wide" type="submit">Enter the studio <span aria-hidden="true">→</span></button>
+          <p class="form-message" id="login-message" role="alert"></p>
+        </form>
+        <p class="demo-note">Local demo access: <strong>manager@openmicfm.co.za</strong> / <strong>openmic</strong></p>
+      </div>
+      <p class="login-foot">Broadcasting from Mthatha, Eastern Cape <span>•</span> 2026</p>
+    </section>
+
+    <section class="dashboard-view" id="dashboard-view" hidden>
+      <aside class="sidebar">
+        <a class="sidebar-brand" href="index.html"><img src="images/logo.png" alt="OpenMicFM home"></a>
+        <div class="sidebar-label">Station manager</div>
+        <nav class="side-nav" aria-label="Dashboard sections">
+          <button class="side-link active" type="button" data-section="overview"><span class="nav-icon">⌂</span>Overview</button>
+          <button class="side-link" type="button" data-section="schedule"><span class="nav-icon">◷</span>Schedule</button>
+          <button class="side-link" type="button" data-section="music"><span class="nav-icon">♫</span>Top 10 music</button>
+          <button class="side-link" type="button" data-section="news"><span class="nav-icon">▤</span>Newsroom</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="live-status"><span class="live-dot"></span><div><strong>Station online</strong><small>All systems normal</small></div></div>
+          <button class="side-link logout-button" id="logout-button" type="button"><span class="nav-icon">↪</span>Sign out</button>
+        </div>
+      </aside>
+      <div class="dashboard-main">
+        <header class="dashboard-header">
+          <div><p class="header-kicker">THURSDAY, 03 SEPTEMBER 2026</p><h2 id="page-heading">Good morning, Thando <span>✦</span></h2></div>
+          <div class="header-actions"><button class="icon-button" type="button" title="Notifications" aria-label="Notifications">♧<b></b></button><div class="profile"><span>TM</span><div><strong>Thando Mbeki</strong><small>Station manager</small></div></div></div>
+        </header>
+
+        <div class="content-wrap">
+          <section class="content-section active" data-panel="overview">
+            <div class="section-heading"><div><p class="eyebrow">THE DAILY PULSE</p><h1>Station overview</h1></div><button class="button button-primary" type="button" data-jump="schedule">+ Add a show</button></div>
+            <div class="stat-grid"><article class="stat-card accent"><span class="stat-icon">◷</span><small>ON AIR TODAY</small><strong id="stat-shows">6</strong><p>shows scheduled</p></article><article class="stat-card"><span class="stat-icon">♫</span><small>TOP 10 TRACKS</small><strong id="stat-tracks">10</strong><p>songs in rotation</p></article><article class="stat-card"><span class="stat-icon">▤</span><small>PUBLISHED STORIES</small><strong id="stat-posts">24</strong><p>this month</p></article><article class="stat-card"><span class="stat-icon">♟</span><small>WEEKLY REACH</small><strong>48.2k</strong><p class="positive">↑ 12.4% <span>vs last week</span></p></article></div>
+            <div class="overview-grid"><article class="panel schedule-preview"><div class="panel-heading"><div><p class="eyebrow">ON AIR TODAY</p><h3>Thursday line-up</h3></div><button class="text-button" type="button" data-jump="schedule">View full schedule →</button></div><div id="overview-schedule"></div></article><article class="panel quick-actions"><div class="panel-heading"><div><p class="eyebrow">MAKE IT HAPPEN</p><h3>Quick actions</h3></div></div><button class="quick-action" type="button" data-jump="news"><span class="quick-icon news-icon">▤</span><span><strong>Publish a story</strong><small>Share a local or national update</small></span><b>→</b></button><button class="quick-action" type="button" data-jump="music"><span class="quick-icon music-icon">♫</span><span><strong>Update Top 10</strong><small>Keep the station in tune</small></span><b>→</b></button><button class="quick-action" type="button" data-jump="schedule"><span class="quick-icon schedule-icon">◷</span><span><strong>Plan a show</strong><small>Assign a presenter and slot</small></span><b>→</b></button></article></div>
+            <article class="panel activity-panel"><div class="panel-heading"><div><p class="eyebrow">RECENT ACTIVITY</p><h3>What’s been happening</h3></div><span class="muted">Live updates</span></div><div class="activity-list"><div><span class="activity-mark yellow">♫</span><p><strong>Top 10 playlist updated</strong><small>by Thando Mbeki · 18 minutes ago</small></p><span class="activity-tag">Music</span></div><div><span class="activity-mark green">✓</span><p><strong>“School league finals” published</strong><small>by Lwazi Ndlovu · 1 hour ago</small></p><span class="activity-tag">Sport</span></div><div><span class="activity-mark blue">◷</span><p><strong>Thursday line-up confirmed</strong><small>by Thando Mbeki · 2 hours ago</small></p><span class="activity-tag">Schedule</span></div></div></article>
+          </section>
+
+          <section class="content-section" data-panel="schedule"><div class="section-heading"><div><p class="eyebrow">PROGRAMMING</p><h1>Presenter schedule</h1><p class="section-subtitle">Keep the day moving, one show at a time.</p></div><button class="button button-primary" id="add-show-button" type="button">+ Add a show</button></div><div class="toolbar"><div class="day-tabs"><button class="day-tab active" type="button">THU <strong>03</strong></button><button class="day-tab" type="button">FRI <strong>04</strong></button><button class="day-tab" type="button">SAT <strong>05</strong></button><button class="day-tab" type="button">SUN <strong>06</strong></button></div><span class="toolbar-note">6 shows · 05:00 – 22:00</span></div><div class="panel schedule-table"><div class="table-head"><span>TIME</span><span>SHOW & PRESENTER</span><span>STATUS</span><span></span></div><div id="schedule-list"></div></div></section>
+
+          <section class="content-section" data-panel="music"><div class="section-heading"><div><p class="eyebrow">MUSIC PROGRAMMING</p><h1>Top 10 songs</h1><p class="section-subtitle">Your current listener favourites, ready for the next spin.</p></div><button class="button button-primary" id="add-song-button" type="button">+ Add a song</button></div><div class="panel music-table"><div class="music-head"><span>#</span><span>TRACK</span><span>ARTIST</span><span>PLAYS</span><span></span></div><div id="music-list"></div></div></section>
+
+          <section class="content-section" data-panel="news"><div class="section-heading"><div><p class="eyebrow">EDITORIAL DESK</p><h1>Newsroom</h1><p class="section-subtitle">Write, edit, and publish the stories your listeners care about.</p></div><button class="button button-primary" id="add-post-button" type="button">+ New story</button></div><div class="news-filters"><button class="filter-button active" data-filter="all" type="button">All stories <span id="all-count">24</span></button><button class="filter-button" data-filter="local" type="button">Local</button><button class="filter-button" data-filter="national" type="button">National</button><button class="filter-button" data-filter="sport" type="button">Sport</button><button class="filter-button" data-filter="draft" type="button">Drafts</button></div><div class="news-grid" id="news-list"></div></section>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="modal-backdrop" id="modal-backdrop" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" id="modal-close" type="button" aria-label="Close">×</button><p class="eyebrow">STATION MANAGER</p><h2 id="modal-title">Add a show</h2><form id="item-form"><div class="form-grid" id="modal-fields"></div><button class="button button-primary button-wide" type="submit">Save changes</button></form></section></div>
+  <script src="js/admin.js"></script>
+</body>
+</html>
