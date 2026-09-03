@@ -2,35 +2,53 @@
 (function () {
   'use strict';
 
+  function renderNavigation(navMount, isArticlePage, markup) {
+    navMount.innerHTML = markup;
+    if (isArticlePage) {
+      navMount.querySelectorAll('a[href^="./"]').forEach(function (link) {
+        link.setAttribute('href', '../' + link.getAttribute('href').slice(2));
+      });
+      navMount.querySelectorAll('img[src^="./"]').forEach(function (image) {
+        image.setAttribute('src', '../' + image.getAttribute('src').slice(2));
+      });
+    }
+
+    var menuToggle = navMount.querySelector('.shared-site-menu-toggle');
+    var menu = navMount.querySelector('.shared-site-nav');
+    if (menuToggle && menu) {
+      menuToggle.addEventListener('click', function () {
+        var isOpen = menu.classList.toggle('is-open');
+        menuToggle.setAttribute('aria-expanded', String(isOpen));
+      });
+    }
+  }
+
   var navMount = document.getElementById('site-navigation');
   if (navMount) {
     document.querySelectorAll('header.site-header').forEach(function (legacyHeader) {
       legacyHeader.remove();
     });
 
-    var navPath = window.location.pathname.indexOf('/news-articles/') !== -1 ? '../nav.html' : './nav.html';
-    fetch(navPath)
-      .then(function (response) { return response.text(); })
-      .then(function (markup) {
-        navMount.innerHTML = markup;
-        if (navPath === '../nav.html') {
-          navMount.querySelectorAll('a[href^="./"]').forEach(function (link) {
-            link.setAttribute('href', '../' + link.getAttribute('href').slice(2));
-          });
-          navMount.querySelectorAll('img[src^="./"]').forEach(function (image) {
-            image.setAttribute('src', '../' + image.getAttribute('src').slice(2));
-          });
-        }
-        var menuToggle = navMount.querySelector('.shared-site-menu-toggle');
-        var menu = navMount.querySelector('.shared-site-nav');
-        if (menuToggle && menu) {
-          menuToggle.addEventListener('click', function () {
-            var isOpen = menu.classList.toggle('is-open');
-            menuToggle.setAttribute('aria-expanded', String(isOpen));
-          });
-        }
-      })
-      .catch(function () { navMount.setAttribute('aria-hidden', 'true'); });
+    var isArticlePage = window.location.pathname.indexOf('/news-articles/') !== -1;
+    var navPath = isArticlePage ? '../nav.html' : './nav.html';
+    var fallbackNavigation = '<header class="shared-site-header" id="site-navigation-header"><div class="shared-site-header-inner"><a class="shared-site-logo" href="' + (isArticlePage ? '../' : './') + 'index.html" aria-label="OpenMicFM home"><img src="' + (isArticlePage ? '../' : './') + 'images/logo.png" alt="OpenMicFM logo"></a><button class="shared-site-menu-toggle" type="button" aria-expanded="false" aria-controls="shared-site-nav">Menu</button><nav class="shared-site-nav" id="shared-site-nav" aria-label="Primary navigation"><a href="' + (isArticlePage ? '../' : './') + 'index.html">Home</a><a href="' + (isArticlePage ? '../' : './') + 'shows.html">Shows</a><a href="' + (isArticlePage ? '../' : './') + 'sports.html">Sport</a><details class="shared-site-dropdown"><summary>News</summary><div class="shared-site-dropdown-menu"><a href="' + (isArticlePage ? '../' : './') + 'local.html">Local News</a><a href="' + (isArticlePage ? '../' : './') + 'national-news.html">National News</a></div></details><a href="' + (isArticlePage ? '../' : './') + 'about.html">About</a><a href="' + (isArticlePage ? '../' : './') + 'contact.html">Contact</a></nav><a class="shared-site-listen" href="http://p.onlineradiobox.com/za/nkqubela/player/?cs=za.nkqubela&amp;played=1" target="_blank" rel="noopener noreferrer">Listen Now</a></div></header>';
+    if (typeof fetch !== 'function') {
+      renderNavigation(navMount, isArticlePage, fallbackNavigation);
+    } else {
+      fetch(navPath)
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Navigation request failed');
+          }
+          return response.text();
+        })
+        .then(function (markup) {
+          renderNavigation(navMount, isArticlePage, markup);
+        })
+        .catch(function () {
+          renderNavigation(navMount, isArticlePage, fallbackNavigation);
+        });
+    }
   }
 
   // Fallbacks for WordPress-style URLs that may still exist in exported markup.
