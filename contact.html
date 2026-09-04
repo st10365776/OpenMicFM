@@ -4,6 +4,36 @@
   <!-- Page metadata, SEO, and styles -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		@media (max-width: 768px) {
+			.stk-453f4d7 > .stk-453f4d7-column {
+				flex-direction: column;
+				gap: 32px;
+			}
+
+			.stk-453f4d7 .stk-block-column {
+				width: 100%;
+			}
+
+			.srfm-form-container-513 {
+				padding: 20px !important;
+			}
+
+			.srfm-form-container-513 .srfm-block-width-50 {
+				width: 100%;
+			}
+
+			.srfm-form-container-513 .srfm-submit-button {
+				width: 100%;
+			}
+		}
+
+		.srfm-success-box-description {
+			color: #16803c;
+			font-weight: 600;
+			padding: 16px 0;
+		}
+	</style>
 	<link rel="profile" href="https://gmpg.org/xfn/11"> 
 	<title>Contact - The Station With Progresss</title>
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
@@ -706,9 +736,9 @@ img, iframe, video {
 
 							
 					
-					<div class="srfm-submit-container " style="">
-						<div style="width: ; text-align: left" class="wp-block-button">
-																			<button style="" id="srfm-submit-btn" class="srfm-btn-frontend srfm-button srfm-submit-button">
+					<div class="srfm-submit-container">
+						<div class="wp-block-button">
+																			<button id="srfm-submit-btn" class="srfm-btn-frontend srfm-button srfm-submit-button">
 								<div class="srfm-submit-wrap">
 									Submit								<div class="srfm-loader"></div>
 								</div>
@@ -878,6 +908,24 @@ var srfm_submit = {"site_url":"","nonce":"17173fb6d0","messages":{"srfm_valid_ph
 //# sourceURL=srfm-form-submit-js-extra
 </script>
 <script id="srfm-form-submit-js" src="./js/formSubmit.js"></script>
+	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+			var contactForm = document.getElementById('srfm-form-513');
+			var successMessage = document.getElementById('srfm-success-message-page-513');
+
+			if (!contactForm || !successMessage) {
+				return;
+			}
+
+			contactForm.addEventListener('submit', function (event) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				successMessage.textContent = 'Message submitted successfully.';
+				successMessage.hidden = false;
+				contactForm.reset();
+			}, true);
+		});
+	</script>
 <script id="srfm-frontend-js" src="./js/frontend.min_bc3618.js"></script>
 <script id="stk-frontend-map-js-extra">
 var stackableMapVars = {"googleApiKey":"","labelMissingMapApiKey":"This map block uses settings that require a Google Maps API key, but it is missing. Please enter your Google Maps API key in the Stackable settings, or edit this map block."};
