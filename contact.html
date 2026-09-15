@@ -920,9 +920,39 @@ var srfm_submit = {"site_url":"","nonce":"17173fb6d0","messages":{"srfm_valid_ph
 			contactForm.addEventListener('submit', function (event) {
 				event.preventDefault();
 				event.stopImmediatePropagation();
-				successMessage.textContent = 'Message submitted successfully.';
-				successMessage.hidden = false;
-				contactForm.reset();
+
+				var firstName = contactForm.querySelector('[name*="first-name"]').value.trim();
+				var lastName = contactForm.querySelector('[name*="last-name"]').value.trim();
+				var email = contactForm.querySelector('input[type="email"]').value.trim();
+				var message = contactForm.querySelector('textarea').value.trim();
+
+				fetch('http://localhost:4000/api/contact', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						name: [firstName, lastName].filter(Boolean).join(' '),
+						email: email,
+						message: message
+					})
+				})
+					.then(function (response) {
+						if (!response.ok) {
+							throw new Error('Unable to submit your message.');
+						}
+
+						return response.text();
+					})
+					.then(function () {
+						successMessage.textContent = 'Message submitted successfully.';
+						successMessage.hidden = false;
+						contactForm.reset();
+					})
+					.catch(function (error) {
+						successMessage.textContent = error.message;
+						successMessage.hidden = false;
+					});
 			}, true);
 		});
 	</script>
