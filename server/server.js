@@ -20,6 +20,7 @@ fs.mkdirSync(uploadDirectory, { recursive: true });
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || '*' }));
 app.use(express.json());
 app.use('/uploads', express.static(uploadDirectory));
+app.use(express.static(path.join(__dirname, '..')));
 
 app.get('/api/health', async (_req, res) => {
 	try {
@@ -61,7 +62,7 @@ async function start() {
 		ALTER TABLE songs
 		ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT ''
 	`);
-	app.listen(PORT, () => console.log(`OpenMicFM API running on http://localhost:${PORT}`));
+	app.listen(PORT, () => console.log(`OpenMicFM running on port ${PORT}`));
 }
 
 start().catch(error => {
