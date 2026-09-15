@@ -567,6 +567,19 @@ img, iframe, video {
 		</div>
 						</div>
 				</div>
+				<section id="shows-app" class="shows-app" aria-labelledby="shows-app-title">
+					<div class="shows-app-heading">
+						<p class="shows-app-kicker">ON AIR PROGRAMMING</p>
+						<h2 id="shows-app-title">Find your show</h2>
+						<div class="shows-app-tabs" role="tablist" aria-label="Show schedule filters">
+							<button class="shows-app-tab is-active" type="button" role="tab" aria-selected="true" data-show-filter="weekdays">Weekdays</button>
+							<button class="shows-app-tab" type="button" role="tab" aria-selected="false" data-show-filter="weekends">Weekends</button>
+						</div>
+					</div>
+					<div class="show-card-grid" data-show-cards>
+						<p class="show-card-empty">Loading shows...</p>
+					</div>
+				</section>
 				<div class="elementor-element elementor-element-f305770 e-n-tabs-mobile elementor-widget elementor-widget-n-tabs" data-id="f305770" data-element_type="widget" data-e-type="widget" data-settings='{"horizontal_scroll":"disable"}' data-widget_type="nested-tabs.default">
 				<div class="elementor-widget-container">
 							<div class="e-n-tabs" data-widget-number="254826352" aria-label="Tabs. Open items with Enter or Space, close with Escape and navigate using the Arrow keys.">
@@ -1423,6 +1436,7 @@ var e="script#wp-emoji-settings",t=document.querySelector(e);if(!(t instanceof H
 //# sourceURL=/wp-includes/js/wp-emoji-loader.min.js
 </script>
 	<script src="./js/site.js"></script>
+	<script src="./js/shows.js"></script>
   <!-- Page scripts -->
 </body>
 </html>

@@ -5,8 +5,8 @@
     // CONFIGURATION
     // ============================================================
 
-    const STORAGE_KEY = 'openmicfm-station-data';
-    const AUTH_KEY = 'openmicfm-auth';
+    const API_BASE = 'http://localhost:4000/api';
+    const AUTH_KEY = 'openmicfm-token';
 
     const DEFAULT_DATA = {
         shows: [
@@ -151,8 +151,16 @@
     // APPLICATION STATE
     // ============================================================
 
-    let data = loadData();
+    let data = {
+        shows: [],
+        songs: [],
+        posts: [],
+        metrics: [],
+        activity: [],
+        user: null
+    };
     let activeModal = '';
+    let editingItem = null;
 
 
     // ============================================================
@@ -178,9 +186,19 @@
 
         statShows: document.getElementById('stat-shows'),
         statTracks: document.getElementById('stat-tracks'),
+        statPosts: document.getElementById('stat-posts'),
+        weeklyReach: document.querySelector('.stat-card:nth-child(4) strong'),
+        weeklyChange: document.querySelector('.stat-card:nth-child(4) .positive'),
+        activityList: document.querySelector('.activity-list'),
+        overviewScheduleTitle: document.querySelector('.schedule-preview h3'),
+        profileName: document.querySelector('.profile strong'),
+        profileInitials: document.querySelector('.profile > span'),
 
         scheduleList: document.getElementById('schedule-list'),
         overviewSchedule: document.getElementById('overview-schedule'),
+        headerKickers: document.querySelectorAll('.header-kicker'),
+        dayTabs: document.querySelectorAll('.day-tab'),
+        toolbarNote: document.querySelector('.toolbar-note'),
 
         musicList: document.getElementById('music-list'),
         newsList: document.getElementById('news-list'),
@@ -198,23 +216,71 @@
     // STORAGE
     // ============================================================
 
-    function loadData() {
-        const savedData = localStorage.getItem(STORAGE_KEY);
-
-        if (!savedData) {
-            return structuredClone(DEFAULT_DATA);
-        }
-
-        try {
-            return JSON.parse(savedData);
-        } catch (error) {
-            console.error('Failed to load saved station data:', error);
-            return structuredClone(DEFAULT_DATA);
-        }
+    function getAuthToken() {
+        return sessionStorage.getItem(AUTH_KEY);
     }
 
-    function saveData() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    async function apiRequest(path, options = {}) {
+        const headers = { ...(options.headers || {}) };
+
+        if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
+        const token = getAuthToken();
+
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_BASE}${path}`, {
+            ...options,
+            headers,
+            body: options.body && !(options.body instanceof FormData) && typeof options.body !== 'string'
+                ? JSON.stringify(options.body)
+                : options.body
+        });
+
+        if (!response.ok) {
+            let message = `Request failed (${response.status})`;
+
+            try {
+                const error = await response.json();
+                message = error.message || error.error || message;
+            } catch (error) {}
+
+            throw new Error(message);
+        }
+
+        return response.status === 204 ? null : response.json();
+    }
+
+    function normalizeShow(show) {
+        if (show.time) {
+            return show;
+        }
+
+        return {
+            ...show,
+            time: `${String(show.start_time || '').slice(0, 5)} – ${String(show.end_time || '').slice(0, 5)}`
+        };
+    }
+
+    async function loadData() {
+        const [shows, songs, posts, dashboard] = await Promise.all([
+            apiRequest('/shows'),
+            apiRequest('/songs'),
+            apiRequest('/posts'),
+            apiRequest('/dashboard')
+        ]);
+
+        data = {
+            shows: shows.map(normalizeShow),
+            songs,
+            posts,
+            metrics: dashboard.metrics || [],
+            activity: dashboard.activity || [],
+            user: dashboard.user || null
+        };
     }
 
 
@@ -236,6 +302,12 @@
         });
     }
 
+    function mediaUrl(value) {
+        if (!value) return '';
+        if (value.startsWith('/uploads/')) return `http://localhost:4000${value}`;
+        return value.startsWith('http') ? value : `../images/${value}`;
+    }
+
     function getInitials(name) {
         return name
             .split(' ')
@@ -252,7 +324,7 @@
     // ============================================================
 
     function isAuthenticated() {
-        return sessionStorage.getItem(AUTH_KEY) === 'true';
+        return Boolean(getAuthToken());
     }
 
     function showDashboard() {
@@ -267,25 +339,31 @@
         if (elements.loginView) elements.loginView.hidden = false;
     }
 
-    function handleLogin(event) {
+    async function handleLogin(event) {
         event.preventDefault();
 
         const email = elements.loginEmail.value.trim();
         const password = elements.loginPassword.value;
 
-        const validLogin =
-            email === 'manager@openmicfm.co.za' &&
-            password === '123';
+        try {
+            const result = await apiRequest('/auth/login', {
+                method: 'POST',
+                body: { email, password }
+            });
 
-        if (!validLogin) {
+            if (!result.token) {
+                throw new Error('The login response did not include a token.');
+            }
+
+            sessionStorage.setItem(AUTH_KEY, result.token);
+            await loadData();
+            elements.loginMessage.textContent = '';
+        } catch (error) {
             elements.loginMessage.textContent =
-                'That login does not match the local demo account.';
+                error.message || 'Unable to sign in. Please try again.';
 
             return;
         }
-
-        sessionStorage.setItem(AUTH_KEY, 'true');
-        elements.loginMessage.textContent = '';
 
         if (elements.dashboard) {
             showDashboard();
@@ -313,20 +391,105 @@
         renderSchedule();
         renderMusic();
         renderPosts();
+        renderDashboardDetails();
     }
 
     function renderStats() {
         if (elements.statShows) elements.statShows.textContent = data.shows.length;
         if (elements.statTracks) elements.statTracks.textContent = data.songs.length;
+        if (elements.statPosts) {
+            elements.statPosts.textContent = data.posts.filter(post => post.status === 'Published').length;
+        }
+
+        const reach = data.metrics.find(metric => metric.metric_key === 'weekly_reach');
+        if (reach && elements.weeklyReach) {
+            elements.weeklyReach.textContent = `${(Number(reach.metric_value) / 1000).toFixed(1)}k`;
+        }
+        if (reach && elements.weeklyChange) {
+            elements.weeklyChange.innerHTML = `↑ ${escapeHtml(reach.change_value)}% <span>${escapeHtml(reach.change_text)}</span>`;
+        }
+    }
+
+    function renderDashboardDetails() {
+        if (data.user) {
+            const fullName = data.user.full_name || 'Station manager';
+            if (elements.profileName) elements.profileName.textContent = fullName;
+            if (elements.profileInitials) elements.profileInitials.textContent = data.user.initials || getInitials(fullName);
+        }
+
+        updatePageHeading(document.querySelector('.content-section.active')?.dataset.panel || 'overview');
+
+        if (elements.activityList) {
+            elements.activityList.innerHTML = data.activity.length
+                ? data.activity.map(activity => `
+                    <div>
+                        <span class="activity-mark ${escapeHtml(activity.icon)}">${activity.icon === 'yellow' ? '♫' : activity.icon === 'green' ? '✓' : '◷'}</span>
+                        <p>
+                            <strong>${escapeHtml(activity.title)}</strong>
+                            <small>by ${escapeHtml(activity.actor_name)} · ${formatRelativeTime(activity.created_at)}</small>
+                        </p>
+                        <span class="activity-tag">${escapeHtml(activity.category)}</span>
+                    </div>
+                `).join('')
+                : '<p class="muted">No recent activity.</p>';
+        }
+    }
+
+    function formatRelativeTime(value) {
+        const elapsedMinutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
+        if (elapsedMinutes < 1) return 'just now';
+        if (elapsedMinutes < 60) return `${elapsedMinutes} minute${elapsedMinutes === 1 ? '' : 's'} ago`;
+        const elapsedHours = Math.floor(elapsedMinutes / 60);
+        if (elapsedHours < 24) return `${elapsedHours} hour${elapsedHours === 1 ? '' : 's'} ago`;
+        const elapsedDays = Math.floor(elapsedHours / 24);
+        return `${elapsedDays} day${elapsedDays === 1 ? '' : 's'} ago`;
     }
 
     function renderSchedule() {
+        renderDateContext();
         renderFullSchedule();
         renderOverviewSchedule();
     }
 
+    function renderDateContext() {
+        const today = new Date();
+        const dateFormatter = new Intl.DateTimeFormat('en-ZA', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        elements.headerKickers.forEach(kicker => {
+            kicker.textContent = dateFormatter.format(today).toUpperCase();
+        });
+
+        elements.dayTabs.forEach((tab, index) => {
+            const date = new Date(today);
+            date.setDate(today.getDate() + index);
+            const dayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'short' })
+                .format(date)
+                .toUpperCase();
+            const dayCode = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date);
+
+            tab.firstChild.nodeValue = `${dayLabel} `;
+            tab.querySelector('strong').textContent = String(date.getDate()).padStart(2, '0');
+            tab.dataset.day = dayCode;
+        });
+    }
+
     function renderFullSchedule() {
         if (!elements.scheduleList) return;
+
+        renderDateContext();
+
+        if (elements.toolbarNote && data.shows.length) {
+            const times = data.shows
+                .map(show => [show.start_time, show.end_time])
+                .flat()
+                .sort();
+            elements.toolbarNote.textContent = `${data.shows.length} shows · ${times[0].slice(0, 5)} – ${times[times.length - 1].slice(0, 5)}`;
+        }
 
         const html = data.shows
             .map((show, index) => `
@@ -358,14 +521,13 @@
                         Confirmed
                     </span>
 
-                    <button
-                        class="row-actions"
-                        type="button"
-                        data-delete-show="${index}"
-                        aria-label="Delete show"
-                    >
-                        ···
-                    </button>
+                    <div class="action-menu">
+                        <button class="row-actions" type="button" aria-label="Show actions">···</button>
+                        <div class="action-menu-options">
+                            <button type="button" data-edit-type="show" data-edit-index="${index}">Edit</button>
+                            <button type="button" data-delete-show="${index}">Delete</button>
+                        </div>
+                    </div>
 
                 </div>
             `)
@@ -376,6 +538,10 @@
 
     function renderOverviewSchedule() {
         if (!elements.overviewSchedule) return;
+
+        if (elements.overviewScheduleTitle) {
+            elements.overviewScheduleTitle.textContent = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()) + ' line-up';
+        }
 
         const html = data.shows
             .slice(0, 4)
@@ -419,14 +585,16 @@
                     </span>
 
                     <div class="track">
+                            ${song.image ? `<img class="song-artwork" src="${escapeHtml(mediaUrl(song.image))}" alt="">` : ''}
+                            <div>
+                                <strong>
+                                    ${escapeHtml(song.title)}
+                                </strong>
 
-                        <strong>
-                            ${escapeHtml(song.title)}
-                        </strong>
-
-                        <small>
-                            Now in rotation
-                        </small>
+                                <small>
+                                    Now in rotation
+                                </small>
+                            </div>
 
                     </div>
 
@@ -438,14 +606,13 @@
                         ${escapeHtml(song.plays)} plays
                     </span>
 
-                    <button
-                        class="row-actions"
-                        type="button"
-                        data-delete-song="${index}"
-                        aria-label="Delete song"
-                    >
-                        ···
-                    </button>
+                    <div class="action-menu">
+                        <button class="row-actions" type="button" aria-label="Song actions">···</button>
+                        <div class="action-menu-options">
+                            <button type="button" data-edit-type="song" data-edit-index="${index}">Edit</button>
+                            <button type="button" data-delete-song="${index}">Delete</button>
+                        </div>
+                    </div>
 
                 </div>
             `)
@@ -499,16 +666,16 @@
                         <footer>
 
                             <span>
-                                ${escapeHtml(post.date)}
+                                ${escapeHtml(post.date || post.published_at || post.created_at || '')}
                             </span>
 
-                            <button
-                                class="text-button"
-                                type="button"
-                                data-delete-post="${originalIndex}"
-                            >
-                                Remove
-                            </button>
+                            <div class="action-menu">
+                                <button class="row-actions" type="button" aria-label="News actions">···</button>
+                                <div class="action-menu-options">
+                                    <button type="button" data-edit-type="post" data-edit-index="${originalIndex}">Edit</button>
+                                    <button type="button" data-delete-post="${originalIndex}">Delete</button>
+                                </div>
+                            </div>
 
                         </footer>
 
@@ -519,7 +686,7 @@
 
         elements.newsList.innerHTML = html;
 
-        if (elements.allCount) elements.allCount.textContent = data.posts.length + 19;
+        if (elements.allCount) elements.allCount.textContent = data.posts.length;
     }
 
 
@@ -529,6 +696,21 @@
 
     function getShowFields() {
         return `
+            <div class="form-field">
+                <label for="field-day">
+                    Day
+                </label>
+
+                <div class="day-checkboxes" id="field-days">
+                    ${[
+                        ['Mon', 'Monday'], ['Tue', 'Tuesday'], ['Wed', 'Wednesday'],
+                        ['Thu', 'Thursday'], ['Fri', 'Friday'], ['Sat', 'Saturday'], ['Sun', 'Sunday']
+                    ].map(([value, label]) => `
+                        <label><input type="checkbox" name="show-days" value="${value}"> ${label}</label>
+                    `).join('')}
+                </div>
+            </div>
+
             <div class="form-field">
                 <label for="field-time">
                     Time slot
@@ -543,13 +725,50 @@
 
             <div class="form-field">
                 <label for="field-name">
-                    Show name
+                    Card name
                 </label>
 
                 <input
                     id="field-name"
                     required
                     placeholder="The Mid-Morning Mix"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="field-title">
+                    Show title
+                </label>
+
+                <input
+                    id="field-title"
+                    required
+                    placeholder="The Mid-Morning Mix"
+                >
+            </div>
+
+            <div class="form-field full">
+                <label for="field-description">
+                    Description
+                </label>
+
+                <textarea
+                    id="field-description"
+                    required
+                    placeholder="A short description for the show..."
+                ></textarea>
+            </div>
+
+            <div class="form-field full">
+                <label for="field-image">
+                    Show image
+                </label>
+
+                <input
+                    id="field-image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    placeholder="show-image.jpg"
                 >
             </div>
 
@@ -593,6 +812,20 @@
                     id="field-artist"
                     required
                     placeholder="Artist name"
+                >
+
+            </div>
+
+            <div class="form-field">
+
+                <label for="field-song-image">
+                    Song artwork
+                </label>
+
+                <input
+                    id="field-song-image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                 >
 
             </div>
@@ -671,6 +904,32 @@
                 ></textarea>
 
             </div>
+
+            <div class="form-field full">
+                <label for="field-post-image">
+                    Story image
+                </label>
+
+                <input
+                    id="field-post-image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                >
+            </div>
+
+            <div class="form-field full">
+                <label>Story content</label>
+                <div class="editor-toolbar" role="toolbar" aria-label="Story formatting">
+                    <button type="button" data-editor-command="bold"><strong>B</strong></button>
+                    <button type="button" data-editor-command="italic"><em>I</em></button>
+                    <button type="button" data-editor-command="underline"><u>U</u></button>
+                    <button type="button" data-editor-command="formatBlock" data-editor-value="&lt;h2&gt;">H2</button>
+                    <button type="button" data-editor-command="insertUnorderedList">List</button>
+                    <button type="button" data-editor-command="insertOrderedList">1. List</button>
+                    <button type="button" data-editor-command="createLink">Link</button>
+                </div>
+                <div id="field-body" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true"></div>
+            </div>
         `;
     }
 
@@ -708,6 +967,7 @@
 
     function openModal(type) {
         activeModal = type;
+        editingItem = null;
 
         elements.modalTitle.textContent =
             getModalTitle(type);
@@ -725,9 +985,47 @@
         }
     }
 
+    function openEditModal(type, item) {
+        activeModal = type;
+        editingItem = item;
+        elements.modalTitle.textContent = `Edit ${type === 'post' ? 'story' : type}`;
+        elements.modalFields.innerHTML = getModalFields(type);
+        elements.modal.hidden = false;
+
+        if (type === 'show') {
+            const days = item.days_of_week || [item.day_of_week];
+            document.querySelectorAll('input[name="show-days"]').forEach(field => {
+                field.checked = days.includes(field.value);
+            });
+            document.getElementById('field-time').value = item.time || `${item.start_time} – ${item.end_time}`;
+            document.getElementById('field-name').value = item.name || '';
+            document.getElementById('field-title').value = item.title || item.name || '';
+            document.getElementById('field-description').value = item.description || '';
+            document.getElementById('field-presenter').value = item.presenter || '';
+        }
+
+        if (type === 'song') {
+            document.getElementById('field-title').value = item.title || '';
+            document.getElementById('field-artist').value = item.artist || '';
+            document.getElementById('field-plays').value = item.plays || 0;
+        }
+
+        if (type === 'post') {
+            document.getElementById('field-type').value = item.type || 'Local';
+            document.getElementById('field-status').value = item.status || 'Draft';
+            document.getElementById('field-title').value = item.title || '';
+            document.getElementById('field-excerpt').value = item.excerpt || '';
+            document.getElementById('field-body').innerHTML = item.body || '';
+        }
+
+        const firstField = elements.modalFields.querySelector('input, select, textarea');
+        if (firstField) firstField.focus();
+    }
+
     function closeModal() {
         elements.modal.hidden = true;
         activeModal = '';
+        editingItem = null;
     }
 
 
@@ -743,55 +1041,127 @@
             : '';
     }
 
-    function handleItemSubmit(event) {
+    function getCheckedValues(name) {
+        return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(field => field.value);
+    }
+
+    function getEditorValue() {
+        const editor = document.getElementById('field-body');
+        return editor ? editor.innerHTML.trim() : '';
+    }
+
+    async function handleItemSubmit(event) {
         event.preventDefault();
 
-        switch (activeModal) {
-            case 'show':
-                addShow();
-                break;
+        try {
+            switch (activeModal) {
+                case 'show':
+                    await saveShow();
+                    break;
 
-            case 'song':
-                addSong();
-                break;
+                case 'song':
+                    await saveSong();
+                    break;
 
-            case 'post':
-                addPost();
-                break;
+                case 'post':
+                    await savePost();
+                    break;
+            }
+
+            await loadData();
+            renderAll();
+            closeModal();
+        } catch (error) {
+            console.error('Failed to save dashboard item:', error);
+        }
+    }
+
+    async function saveShow() {
+        const presenter = getFieldValue('field-presenter');
+        const daysOfWeek = getCheckedValues('show-days');
+        const imageField = document.getElementById('field-image');
+        let image = editingItem?.image || '';
+
+        if (imageField && imageField.files[0]) {
+            const upload = new FormData();
+            upload.append('image', imageField.files[0]);
+            const result = await apiRequest('/shows/image', {
+                method: 'POST',
+                body: upload
+            });
+            image = result.url;
         }
 
-        saveData();
-        renderAll();
-        closeModal();
-    }
+        const [startTime, endTime] = getFieldValue('field-time').split(/\s*[–-]\s*/);
 
-    function addShow() {
-        const presenter = getFieldValue('field-presenter');
-
-        data.shows.push({
-            time: getFieldValue('field-time'),
-            name: getFieldValue('field-name'),
-            presenter: presenter,
-            initials: getInitials(presenter),
-            tone: 'blue'
+        await apiRequest(editingItem ? `/shows/${editingItem.id}` : '/shows', {
+            method: editingItem ? 'PUT' : 'POST',
+            body: {
+                day_of_week: daysOfWeek[0],
+                days_of_week: daysOfWeek,
+                start_time: startTime,
+                end_time: endTime,
+                name: getFieldValue('field-name'),
+                title: getFieldValue('field-title'),
+                description: getFieldValue('field-description'),
+                image,
+                presenter,
+                initials: getInitials(presenter),
+                tone: 'blue'
+            }
         });
     }
 
-    function addSong() {
-        data.songs.push({
-            title: getFieldValue('field-title'),
-            artist: getFieldValue('field-artist'),
-            plays: Number(getFieldValue('field-plays')) || 0
+    async function saveSong() {
+        const imageField = document.getElementById('field-song-image');
+        let image = editingItem?.image || '';
+
+        if (imageField && imageField.files[0]) {
+            const upload = new FormData();
+            upload.append('image', imageField.files[0]);
+            const result = await apiRequest('/songs/image', {
+                method: 'POST',
+                body: upload
+            });
+            image = result.url;
+        }
+
+        await apiRequest(editingItem ? `/songs/${editingItem.id}` : '/songs', {
+            method: editingItem ? 'PUT' : 'POST',
+            body: {
+                rank: editingItem?.rank || data.songs.length + 1,
+                title: getFieldValue('field-title'),
+                artist: getFieldValue('field-artist'),
+                plays: Number(getFieldValue('field-plays')) || 0,
+                image
+            }
         });
     }
 
-    function addPost() {
-        data.posts.unshift({
-            type: getFieldValue('field-type'),
-            status: getFieldValue('field-status'),
-            title: getFieldValue('field-title'),
-            excerpt: getFieldValue('field-excerpt'),
-            date: 'Just now'
+    async function savePost() {
+        const imageField = document.getElementById('field-post-image');
+        let image = editingItem?.image || '';
+
+        if (imageField && imageField.files[0]) {
+            const upload = new FormData();
+            upload.append('image', imageField.files[0]);
+            const result = await apiRequest('/posts/image', {
+                method: 'POST',
+                body: upload
+            });
+            image = result.url;
+        }
+
+        await apiRequest(editingItem ? `/posts/${editingItem.id}` : '/posts', {
+            method: editingItem ? 'PUT' : 'POST',
+            body: {
+                type: getFieldValue('field-type'),
+                status: getFieldValue('field-status'),
+                title: getFieldValue('field-title'),
+                excerpt: getFieldValue('field-excerpt'),
+                body: getEditorValue(),
+                image
+            }
         });
     }
 
@@ -800,21 +1170,21 @@
     // DELETE ACTIONS
     // ============================================================
 
-    function deleteShow(index) {
-        data.shows.splice(index, 1);
-        saveData();
+    async function deleteShow(index) {
+        await apiRequest(`/shows/${data.shows[index].id}`, { method: 'DELETE' });
+        await loadData();
         renderAll();
     }
 
-    function deleteSong(index) {
-        data.songs.splice(index, 1);
-        saveData();
+    async function deleteSong(index) {
+        await apiRequest(`/songs/${data.songs[index].id}`, { method: 'DELETE' });
+        await loadData();
         renderAll();
     }
 
-    function deletePost(index) {
-        data.posts.splice(index, 1);
-        saveData();
+    async function deletePost(index) {
+        await apiRequest(`/posts/${data.posts[index].id}`, { method: 'DELETE' });
+        await loadData();
         renderAll();
     }
 
@@ -828,15 +1198,40 @@
         }
 
         if (target.dataset.deleteShow !== undefined) {
-            deleteShow(Number(target.dataset.deleteShow));
+            deleteShow(Number(target.dataset.deleteShow)).catch(console.error);
         }
 
         if (target.dataset.deleteSong !== undefined) {
-            deleteSong(Number(target.dataset.deleteSong));
+            deleteSong(Number(target.dataset.deleteSong)).catch(console.error);
         }
 
         if (target.dataset.deletePost !== undefined) {
-            deletePost(Number(target.dataset.deletePost));
+            deletePost(Number(target.dataset.deletePost)).catch(console.error);
+        }
+    }
+
+    function handleEdit(event) {
+        const target = event.target.closest('[data-edit-type]');
+        if (!target) return;
+
+        const index = Number(target.dataset.editIndex);
+        const collection = target.dataset.editType === 'show'
+            ? data.shows
+            : target.dataset.editType === 'song'
+                ? data.songs
+                : data.posts;
+
+        openEditModal(target.dataset.editType, collection[index]);
+    }
+
+    function handleActionMenu(event) {
+        const button = event.target.closest('.row-actions');
+        document.querySelectorAll('.action-menu.is-open').forEach(menu => {
+            if (!button || menu !== button.parentElement) menu.classList.remove('is-open');
+        });
+
+        if (button) {
+            button.parentElement.classList.toggle('is-open');
         }
     }
 
@@ -883,8 +1278,10 @@
     function updatePageHeading(section) {
         if (!elements.pageHeading) return;
 
-        const title =
-            PAGE_TITLES[section] || PAGE_TITLES.overview;
+        const firstName = (data.user?.full_name || 'Station manager').split(' ')[0];
+        const title = section === 'overview'
+            ? `Good morning, ${firstName}`
+            : PAGE_TITLES[section] || PAGE_TITLES.overview;
 
         elements.pageHeading.innerHTML =
             `${title} <span>✦</span>`;
@@ -915,6 +1312,27 @@
         button.classList.add('active');
 
         renderPosts(button.dataset.filter);
+    }
+
+    function handleEditorToolbar(event) {
+        const button = event.target.closest('[data-editor-command]');
+        if (!button) return;
+
+        const editor = document.getElementById('field-body');
+        if (!editor) return;
+
+        editor.focus();
+        const command = button.dataset.editorCommand;
+        const value = button.dataset.editorValue || null;
+
+        if (command === 'createLink') {
+            const url = window.prompt('Enter the link URL');
+            if (!url) return;
+            document.execCommand(command, false, url);
+            return;
+        }
+
+        document.execCommand(command, false, value);
     }
 
 
@@ -974,6 +1392,10 @@
             handleDelete
         );
 
+        document.addEventListener('click', handleEdit);
+        document.addEventListener('click', handleActionMenu);
+        document.addEventListener('click', handleEditorToolbar);
+
 
         // Navigation
         document
@@ -1002,10 +1424,18 @@
     // INITIALISE APPLICATION
     // ============================================================
 
-    function init() {
+    async function init() {
         setupEventListeners();
 
         if (isAuthenticated()) {
+            try {
+                await loadData();
+            } catch (error) {
+                console.error('Failed to load station data:', error);
+                handleLogout();
+                return;
+            }
+
             if (elements.dashboard) {
                 showDashboard();
             } else if (elements.loginView) {
