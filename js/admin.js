@@ -396,6 +396,8 @@
             title: song.title || '',
             artist: song.artist || '',
             plays: Number(song.plays) || 0,
+            rank: Number(song.rank) || 0,
+            visible: song.visible !== false,
             image: song.image || ''
         };
     }
@@ -1173,7 +1175,7 @@
 
                             <span class="rank">
                                 ${String(
-                                    index + 1
+                                    song.rank || index + 1
                                 ).padStart(2, '0')}
                             </span>
 
@@ -1200,7 +1202,7 @@
                                     </strong>
 
                                     <small>
-                                        Now in rotation
+                                        ${song.visible ? 'Shown on website' : 'Hidden from website'}
                                     </small>
 
                                 </div>
@@ -1545,56 +1547,40 @@
 
         return `
             <div class="form-field">
-
-                <label for="field-title">
-                    Song title
-                </label>
-
+                <label for="field-song-rank">Top 10 position</label>
                 <input
-                    id="field-title"
+                    id="field-song-rank"
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value="${editingItem?.rank || Math.min(data.songs.length + 1, 10)}"
                     required
-                    placeholder="Song title"
                 >
-
+                <small>Choose a position from 1 to 10.</small>
             </div>
 
-
             <div class="form-field">
-
-                <label for="field-artist">
-                    Artist
-                </label>
-
-                <input
-                    id="field-artist"
-                    required
-                    placeholder="Artist name"
-                >
-
+                <label for="field-title">Song title</label>
+                <input id="field-title" required placeholder="Song title">
             </div>
 
+            <div class="form-field">
+                <label for="field-artist">Artist</label>
+                <input id="field-artist" required placeholder="Artist name">
+            </div>
 
             <div class="form-field">
-
-                <label for="field-song-image">
-                    Song artwork
-                </label>
-
+                <label for="field-song-image">Song artwork</label>
                 <input
                     id="field-song-image"
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
                 >
-
             </div>
 
-
             <div class="form-field">
-
-                <label for="field-plays">
-                    Current plays
-                </label>
-
+                <label for="field-plays">Current plays</label>
                 <input
                     id="field-plays"
                     type="number"
@@ -1602,11 +1588,21 @@
                     value="0"
                     required
                 >
+            </div>
 
+            <div class="form-field form-field-checkbox">
+                <label class="checkbox-label" for="field-song-visible">
+                    <input
+                        id="field-song-visible"
+                        type="checkbox"
+                        checked
+                    >
+                    <span>Show this song on the website</span>
+                </label>
+                <small>Turn this off to keep the song in the dashboard but hide it from the public Top 10.</small>
             </div>
         `;
     }
-
 
     function getPostFields() {
 
@@ -1984,6 +1980,26 @@
         // --------------------------------------------------------
 
         if (type === 'song') {
+
+            const rankField =
+                document.getElementById(
+                    'field-song-rank'
+                );
+
+            if (rankField) {
+                rankField.value =
+                    item.rank || 1;
+            }
+
+            const visibleField =
+                document.getElementById(
+                    'field-song-visible'
+                );
+
+            if (visibleField) {
+                visibleField.checked =
+                    item.visible !== false;
+            }
 
             const titleField =
                 document.getElementById(
@@ -2363,10 +2379,20 @@
         }
 
 
+        const rank =
+            Number(
+                getFieldValue('field-song-rank')
+            );
+
+        if (!Number.isInteger(rank) || rank < 1 || rank > 10) {
+            throw new Error('Top 10 position must be a whole number from 1 to 10.');
+        }
+
+        const visibleField =
+            document.getElementById('field-song-visible');
+
         const payload = {
-            rank:
-                editingItem?.rank ||
-                data.songs.length + 1,
+            rank,
 
             title:
                 getFieldValue(
@@ -2385,7 +2411,12 @@
                     )
                 ) || 0,
 
-            image
+            image,
+
+            visible:
+                visibleField
+                    ? visibleField.checked
+                    : true
         };
 
 

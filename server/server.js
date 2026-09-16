@@ -60,7 +60,11 @@ async function start() {
 	`);
 	await pool.query(`
 		ALTER TABLE songs
-		ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT ''
+		ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '',
+		ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT NULL DEFAULT TRUE
+	`);
+	await pool.query(`
+		UPDATE songs SET visible = TRUE WHERE visible IS NULL
 	`);
 	app.listen(PORT, () => console.log(`OpenMicFM running on port ${PORT}`));
 }

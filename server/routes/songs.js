@@ -28,9 +28,13 @@ router.post('/image', requireAuth, upload.single('image'), (req, res) => {
   res.status(201).json({ url: `/uploads/${filename}` });
 });
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM songs ORDER BY rank');
+    const publicOnly = req.query.public === '1' || req.query.public === 'true';
+    const query = publicOnly
+      ? 'SELECT * FROM songs WHERE visible = TRUE ORDER BY rank ASC, id ASC LIMIT 10'
+      : 'SELECT * FROM songs ORDER BY rank ASC, id ASC';
+    const { rows } = await pool.query(query);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -39,11 +43,19 @@ router.get('/', async (_req, res) => {
 });
 
 router.post('/', requireAuth, async (req, res) => {
-  const { rank, title, artist, plays, image = '' } = req.body;
+  const { rank, title, artist, plays, image = '', visible = true } = req.body;
   try {
+    const numericRank = Number(rank);
+    if (!Number.isInteger(numericRank) || numericRank < 1 || numericRank > 10) {
+      return res.status(400).json({ error: 'Rank must be a whole number from 1 to 10.' });
+    }
+    const existing = await pool.query('SELECT id FROM songs WHERE rank = $1 AND visible = TRUE LIMIT 1', [numericRank]);
+    if (existing.rowCount) {
+      return res.status(409).json({ error: `Top 10 position ${numericRank} is already in use. Choose another position or edit the existing song.` });
+    }
     const { rows } = await pool.query(
-      `INSERT INTO songs (rank, title, artist, plays, image) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [rank, title, artist, plays || 0, image]
+      `INSERT INTO songs (rank, title, artist, plays, image, visible) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [numericRank, title, artist, plays || 0, image, visible !== false]
     );
     await recordActivity({
       type: 'song_created',
@@ -61,12 +73,23 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 router.put('/:id', requireAuth, async (req, res) => {
-  const { rank, title, artist, plays, image = '' } = req.body;
+  const { rank, title, artist, plays, image = '', visible = true } = req.body;
   try {
+    const numericRank = Number(rank);
+    if (!Number.isInteger(numericRank) || numericRank < 1 || numericRank > 10) {
+      return res.status(400).json({ error: 'Rank must be a whole number from 1 to 10.' });
+    }
+    const existing = await pool.query(
+      'SELECT id FROM songs WHERE rank = $1 AND visible = TRUE AND id <> $2 LIMIT 1',
+      [numericRank, req.params.id]
+    );
+    if (existing.rowCount) {
+      return res.status(409).json({ error: `Top 10 position ${numericRank} is already in use. Choose another position or edit the existing song.` });
+    }
     const { rows } = await pool.query(
-      `UPDATE songs SET rank=$1, title=$2, artist=$3, plays=$4, image=$5, updated_at=now()
-       WHERE id=$6 RETURNING *`,
-      [rank, title, artist, plays, image, req.params.id]
+      `UPDATE songs SET rank=$1, title=$2, artist=$3, plays=$4, image=$5, visible=$6, updated_at=now()
+       WHERE id=$7 RETURNING *`,
+      [numericRank, title, artist, plays, image, visible !== false, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Song not found.' });
     await recordActivity({

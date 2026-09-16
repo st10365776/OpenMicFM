@@ -151,4 +151,69 @@
     } else {
         render();
     }
+
+    // ============================================================
+    // TOP 10 SONGS FROM DATABASE
+    // ============================================================
+
+    async function getTopSongs() {
+        const response = await fetch(`${API_BASE}/songs?public=1`);
+
+        if (!response.ok) {
+            throw new Error(`Could not load Top 10 songs (${response.status}).`);
+        }
+
+        const songs = await response.json();
+        return Array.isArray(songs) ? songs : [];
+    }
+
+    function createSongCard(song) {
+        const image = mediaUrl(song.image);
+        const rank = Number(song.rank) || 0;
+
+        return `
+            <article class="openmic-song-card">
+                <div class="openmic-song-artwork">
+                    ${image ? `
+                        <img src="${escapeHtml(image)}"
+                             loading="lazy"
+                             alt="${escapeHtml(song.title)}">
+                    ` : `
+                        <div class="openmic-song-placeholder">♫</div>
+                    `}
+                    <span class="openmic-song-rank">${rank}</span>
+                </div>
+                <div class="openmic-song-info">
+                    <h3>${escapeHtml(song.title)}</h3>
+                    <p>${escapeHtml(song.artist)}</p>
+                </div>
+            </article>
+        `;
+    }
+
+    async function renderTop10Songs() {
+        const container = document.getElementById('top10-songs-grid');
+        if (!container) return;
+
+        try {
+            const songs = (await getTopSongs())
+                .sort((a, b) => Number(a.rank || 999) - Number(b.rank || 999))
+                .slice(0, 10);
+
+            container.innerHTML = songs.length
+                ? songs.map(createSongCard).join('')
+                : `<p class="openmic-news-empty">No Top 10 songs are currently available.</p>`;
+
+        } catch (error) {
+            console.error('OpenMicFM Top 10 error:', error);
+            container.innerHTML = `
+                <p class="openmic-news-empty">
+                    Music is temporarily unavailable. Please try again shortly.
+                </p>
+            `;
+        }
+    }
+
+    renderTop10Songs();
+
 })();
