@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT * FROM posts ${where} ORDER BY created_at DESC`,
+      `SELECT * FROM posts ${where} ORDER BY COALESCE(published_at, created_at) DESC`,
       values
     );
     res.json(rows);

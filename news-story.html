@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>News Story | OpenMicFM</title>
+    <link rel="stylesheet" href="./css/main.min.css">
+    <style>
+        .openmic-story {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+        .openmic-story .story-type {
+            display: inline-block;
+            margin-bottom: 16px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .openmic-story h1 {
+            margin: 0 0 18px;
+            font-size: clamp(36px, 6vw, 64px);
+            line-height: 1.05;
+        }
+        .openmic-story .story-date {
+            margin-bottom: 32px;
+            opacity: .65;
+        }
+        .openmic-story .story-image {
+            width: 100%;
+            max-height: 520px;
+            object-fit: cover;
+            margin-bottom: 36px;
+            border-radius: 8px;
+        }
+        .openmic-story .story-excerpt {
+            font-size: 20px;
+            line-height: 1.6;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+        .openmic-story .story-body {
+            font-size: 17px;
+            line-height: 1.8;
+        }
+        .openmic-story .story-body img {
+            max-width: 100%;
+            height: auto;
+        }
+        .openmic-story .story-body a {
+            text-decoration: underline;
+        }
+        .openmic-story .story-back {
+            display: inline-block;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <main class="openmic-story">
+        <a class="story-back" href="./news.html">← Back to news</a>
+        <article id="story-content">
+            <p>Loading story…</p>
+        </article>
+    </main>
+
+    <script>
+    (() => {
+        const content = document.getElementById('story-content');
+
+        function mediaUrl(value = '') {
+            if (!value) return '';
+            if (value.startsWith('/uploads/')) return value;
+            if (value.startsWith('http://') || value.startsWith('https://')) return value;
+            return `./images/${value}`;
+        }
+
+        function formatDate(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return new Intl.DateTimeFormat('en-ZA', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            }).format(date);
+        }
+
+        function escapeHtml(value = '') {
+            return String(value ?? '').replace(/[&<>'"]/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#039;',
+                '"': '&quot;'
+            }[character]));
+        }
+
+        async function loadStory() {
+            const id = new URLSearchParams(window.location.search).get('id');
+
+            if (!id) {
+                throw new Error('Story not found.');
+            }
+
+            const response = await fetch('/api/posts?status=Published');
+
+            if (!response.ok) {
+                throw new Error('Could not load this story.');
+            }
+
+            const posts = await response.json();
+            const story = posts.find(post => String(post.id) === String(id));
+
+            if (!story) {
+                throw new Error('Story not found or it is no longer published.');
+            }
+
+            const image = mediaUrl(story.image);
+            const date = formatDate(story.published_at || story.created_at);
+
+            document.title = `${story.title} | OpenMicFM`;
+
+            content.innerHTML = `
+                <span class="story-type">${escapeHtml(story.type)}</span>
+                <h1>${escapeHtml(story.title)}</h1>
+                ${date ? `<p class="story-date">${escapeHtml(date)}</p>` : ''}
+                ${image ? `<img class="story-image" src="${escapeHtml(image)}" alt="${escapeHtml(story.title)}">` : ''}
+                ${story.excerpt ? `<p class="story-excerpt">${escapeHtml(story.excerpt)}</p>` : ''}
+                <div class="story-body">${story.body || ''}</div>
+            `;
+        }
+
+        loadStory().catch(error => {
+            console.error(error);
+            content.innerHTML = `
+                <h1>Story unavailable</h1>
+                <p>${escapeHtml(error.message || 'Could not load this story.')}</p>
+            `;
+        });
+    })();
+    </script>
+</body>
+</html>
