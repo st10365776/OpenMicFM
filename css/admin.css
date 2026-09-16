@@ -1735,3 +1735,20 @@ button {
 [hidden] {
     display: none !important;
 }
+
+/* ============================================================
+   24. MODAL SCROLL FIX
+   ============================================================ */
+
+.modal-backdrop {
+    align-items: flex-start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.modal {
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 20px 0;
+}
