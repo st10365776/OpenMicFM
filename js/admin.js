@@ -68,97 +68,6 @@
                 tone: 'yellow'
             }
         ],
-
-        songs: [
-            {
-                title: 'Imithandazo',
-                artist: 'Kabza De Small & DJ Maphorisa',
-                plays: 42
-            },
-            {
-                title: 'Mnike',
-                artist: 'Tyler ICU ft. Tumelo_za',
-                plays: 38
-            },
-            {
-                title: 'Asibe Happy',
-                artist: 'Kabza De Small, DJ Maphorisa',
-                plays: 35
-            },
-            {
-                title: 'Amabala',
-                artist: 'Tyla',
-                plays: 31
-            },
-            {
-                title: 'Koo Koo Fun',
-                artist: 'Focalistic',
-                plays: 29
-            },
-            {
-                title: 'iPlan',
-                artist: 'Daliwonga',
-                plays: 27
-            },
-            {
-                title: 'Imizwa',
-                artist: 'Mthandazo Gatya',
-                plays: 24
-            },
-            {
-                title: 'Water',
-                artist: 'Tyla',
-                plays: 22
-            },
-            {
-                title: 'Ses’fikile',
-                artist: 'Lloyiso',
-                plays: 19
-            },
-            {
-                title: 'Saka',
-                artist: 'Busta 929',
-                plays: 16
-            }
-        ],
-
-        posts: [
-            {
-                type: 'Local',
-                title: 'New community garden opens its doors in Mthatha',
-                excerpt: 'A new growing space is bringing neighbours together.',
-                date: 'Today, 09:42',
-                status: 'Published'
-            },
-            {
-                type: 'Sport',
-                title: 'School league finals set for Saturday showdown',
-                excerpt: 'The region’s young stars are ready for a big finish.',
-                date: 'Yesterday',
-                status: 'Published'
-            },
-            {
-                type: 'National',
-                title: 'Power update: what households need to know',
-                excerpt: 'The latest service update from across the country.',
-                date: '01 Sep 2026',
-                status: 'Published'
-            },
-            {
-                type: 'Local',
-                title: 'Five local artists to watch this spring',
-                excerpt: 'Fresh voices are making waves across the Eastern Cape.',
-                date: '30 Aug 2026',
-                status: 'Draft'
-            },
-            {
-                type: 'Sport',
-                title: 'Back on top: Chiefs outclass Sekhukhune',
-                excerpt: 'A confident performance earns a second league win.',
-                date: '29 Aug 2026',
-                status: 'Published'
-            }
-        ]
     };
 
 
@@ -503,7 +412,10 @@
             return '';
         }
 
-        if (value.startsWith('/uploads/')) {
+        if (
+            value.startsWith('/uploads/') ||
+            value.startsWith('/images/')
+        ) {
             return value;
         }
 
@@ -511,6 +423,10 @@
             value.startsWith('http://') ||
             value.startsWith('https://')
         ) {
+            return value;
+        }
+
+        if (value.startsWith('../') || value.startsWith('./')) {
             return value;
         }
 
@@ -964,10 +880,7 @@
             return;
         }
 
-        const shows =
-            data.shows.length
-                ? data.shows
-                : DEFAULT_DATA.shows;
+        const shows = data.shows;
 
 
         if (
@@ -1188,6 +1101,7 @@
                                                 class="song-artwork"
                                                 src="${escapeHtml(image)}"
                                                 alt=""
+                                                onerror="this.onerror=null;this.src='../images/no-image.png';"
                                             >
                                         `
                                         : ''

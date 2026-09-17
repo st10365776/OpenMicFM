@@ -15,8 +15,9 @@
 
     function mediaUrl(value = '') {
         if (!value) return '';
-        if (value.startsWith('/uploads/')) return value;
+        if (value.startsWith('/uploads/') || value.startsWith('/images/')) return value;
         if (value.startsWith('http://') || value.startsWith('https://')) return value;
+        if (value.startsWith('./') || value.startsWith('../')) return value;
         return `./images/${value}`;
     }
 
@@ -58,7 +59,8 @@
                            target="_self" rel="bookmark">
                             <img loading="lazy"
                                  src="${escapeHtml(image)}"
-                                 alt="${escapeHtml(post.title)}">
+                                 alt="${escapeHtml(post.title)}"
+                                 onerror="this.onerror=null;this.src='./images/no-image.png';">
                         </a>
                     </div>
                 ` : ''}
@@ -177,7 +179,8 @@
                     ${image ? `
                         <img src="${escapeHtml(image)}"
                              loading="lazy"
-                             alt="${escapeHtml(song.title)}">
+                             alt="${escapeHtml(song.title)}"
+                             onerror="this.onerror=null;this.src='./images/no-image.png';">
                     ` : `
                         <div class="openmic-song-placeholder">♫</div>
                     `}

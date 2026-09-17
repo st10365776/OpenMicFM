@@ -126,8 +126,9 @@
 
         function mediaUrl(value = '') {
             if (!value) return '';
-            if (value.startsWith('/uploads/')) return value;
+            if (value.startsWith('/uploads/') || value.startsWith('/images/')) return value;
             if (value.startsWith('http://') || value.startsWith('https://')) return value;
+            if (value.startsWith('./') || value.startsWith('../')) return value;
             return `./images/${value}`;
         }
 
@@ -181,7 +182,7 @@
                 <span class="story-type">${escapeHtml(story.type)}</span>
                 <h1>${escapeHtml(story.title)}</h1>
                 ${date ? `<p class="story-date">${escapeHtml(date)}</p>` : ''}
-                ${image ? `<img class="story-image" src="${escapeHtml(image)}" alt="${escapeHtml(story.title)}">` : ''}
+                ${image ? `<img class="story-image" src="${escapeHtml(image)}" alt="${escapeHtml(story.title)}" onerror="this.onerror=null;this.src='./images/no-image.png';">` : ''}
                 ${story.excerpt ? `<p class="story-excerpt">${escapeHtml(story.excerpt)}</p>` : ''}
                 <div class="story-body">${story.body || ''}</div>
             `;
