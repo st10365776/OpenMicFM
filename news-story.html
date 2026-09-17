@@ -6,6 +6,43 @@
     <title>News Story | OpenMicFM</title>
     <link rel="stylesheet" href="./css/main.min.css">
     <style>
+        
+/* ============================================================
+   NEWS STORY CONTENT
+   ============================================================ */
+
+.news-story-content,
+.news-story-content p,
+.news-story-content span,
+.news-story-content div,
+.news-story-content li,
+.news-story-content strong,
+.news-story-content em,
+.news-story-content a {
+    color: #000000 !important;
+}
+
+/* Story headings */
+.news-story-content h1,
+.news-story-content h2,
+.news-story-content h3,
+.news-story-content h4,
+.news-story-content h5,
+.news-story-content h6 {
+    color: #000000 !important;
+}
+
+/* Make links visible */
+.news-story-content a {
+    color: #000000 !important;
+    text-decoration: underline;
+}
+
+/* Preserve spacing in the article */
+.news-story-content p {
+    margin-bottom: 1rem;
+}
+
         .openmic-story {
             max-width: 900px;
             margin: 0 auto;
@@ -44,6 +81,23 @@
         .openmic-story .story-body {
             font-size: 17px;
             line-height: 1.8;
+            color: #000000 !important;
+        }
+        .openmic-story .story-body,
+        .openmic-story .story-body p,
+        .openmic-story .story-body span,
+        .openmic-story .story-body div,
+        .openmic-story .story-body li,
+        .openmic-story .story-body strong,
+        .openmic-story .story-body em,
+        .openmic-story .story-body h1,
+        .openmic-story .story-body h2,
+        .openmic-story .story-body h3,
+        .openmic-story .story-body h4,
+        .openmic-story .story-body h5,
+        .openmic-story .story-body h6,
+        .openmic-story .story-body a {
+            color: #000000 !important;
         }
         .openmic-story .story-body img {
             max-width: 100%;
@@ -60,7 +114,7 @@
 </head>
 <body>
     <main class="openmic-story">
-        <a class="story-back" href="./news.html">← Back to news</a>
+        <a class="story-back" href="./local.html">← Back to news</a>
         <article id="story-content">
             <p>Loading story…</p>
         </article>
@@ -72,8 +126,9 @@
 
         function mediaUrl(value = '') {
             if (!value) return '';
-            if (value.startsWith('/uploads/')) return value;
+            if (value.startsWith('/uploads/') || value.startsWith('/images/')) return value;
             if (value.startsWith('http://') || value.startsWith('https://')) return value;
+            if (value.startsWith('./') || value.startsWith('../')) return value;
             return `./images/${value}`;
         }
 
@@ -127,7 +182,7 @@
                 <span class="story-type">${escapeHtml(story.type)}</span>
                 <h1>${escapeHtml(story.title)}</h1>
                 ${date ? `<p class="story-date">${escapeHtml(date)}</p>` : ''}
-                ${image ? `<img class="story-image" src="${escapeHtml(image)}" alt="${escapeHtml(story.title)}">` : ''}
+                ${image ? `<img class="story-image" src="${escapeHtml(image)}" alt="${escapeHtml(story.title)}" onerror="this.onerror=null;this.src='./images/no-image.png';">` : ''}
                 ${story.excerpt ? `<p class="story-excerpt">${escapeHtml(story.excerpt)}</p>` : ''}
                 <div class="story-body">${story.body || ''}</div>
             `;

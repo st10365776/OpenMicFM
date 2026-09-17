@@ -68,97 +68,6 @@
                 tone: 'yellow'
             }
         ],
-
-        songs: [
-            {
-                title: 'Imithandazo',
-                artist: 'Kabza De Small & DJ Maphorisa',
-                plays: 42
-            },
-            {
-                title: 'Mnike',
-                artist: 'Tyler ICU ft. Tumelo_za',
-                plays: 38
-            },
-            {
-                title: 'Asibe Happy',
-                artist: 'Kabza De Small, DJ Maphorisa',
-                plays: 35
-            },
-            {
-                title: 'Amabala',
-                artist: 'Tyla',
-                plays: 31
-            },
-            {
-                title: 'Koo Koo Fun',
-                artist: 'Focalistic',
-                plays: 29
-            },
-            {
-                title: 'iPlan',
-                artist: 'Daliwonga',
-                plays: 27
-            },
-            {
-                title: 'Imizwa',
-                artist: 'Mthandazo Gatya',
-                plays: 24
-            },
-            {
-                title: 'Water',
-                artist: 'Tyla',
-                plays: 22
-            },
-            {
-                title: 'Ses’fikile',
-                artist: 'Lloyiso',
-                plays: 19
-            },
-            {
-                title: 'Saka',
-                artist: 'Busta 929',
-                plays: 16
-            }
-        ],
-
-        posts: [
-            {
-                type: 'Local',
-                title: 'New community garden opens its doors in Mthatha',
-                excerpt: 'A new growing space is bringing neighbours together.',
-                date: 'Today, 09:42',
-                status: 'Published'
-            },
-            {
-                type: 'Sport',
-                title: 'School league finals set for Saturday showdown',
-                excerpt: 'The region’s young stars are ready for a big finish.',
-                date: 'Yesterday',
-                status: 'Published'
-            },
-            {
-                type: 'National',
-                title: 'Power update: what households need to know',
-                excerpt: 'The latest service update from across the country.',
-                date: '01 Sep 2026',
-                status: 'Published'
-            },
-            {
-                type: 'Local',
-                title: 'Five local artists to watch this spring',
-                excerpt: 'Fresh voices are making waves across the Eastern Cape.',
-                date: '30 Aug 2026',
-                status: 'Draft'
-            },
-            {
-                type: 'Sport',
-                title: 'Back on top: Chiefs outclass Sekhukhune',
-                excerpt: 'A confident performance earns a second league win.',
-                date: '29 Aug 2026',
-                status: 'Published'
-            }
-        ]
     };
 
 
@@ -396,6 +305,8 @@
             title: song.title || '',
             artist: song.artist || '',
             plays: Number(song.plays) || 0,
+            rank: Number(song.rank) || 0,
+            visible: song.visible !== false,
             image: song.image || ''
         };
     }
@@ -501,7 +412,10 @@
             return '';
         }
 
-        if (value.startsWith('/uploads/')) {
+        if (
+            value.startsWith('/uploads/') ||
+            value.startsWith('/images/')
+        ) {
             return value;
         }
 
@@ -509,6 +423,10 @@
             value.startsWith('http://') ||
             value.startsWith('https://')
         ) {
+            return value;
+        }
+
+        if (value.startsWith('../') || value.startsWith('./')) {
             return value;
         }
 
@@ -962,10 +880,7 @@
             return;
         }
 
-        const shows =
-            data.shows.length
-                ? data.shows
-                : DEFAULT_DATA.shows;
+        const shows = data.shows;
 
 
         if (
@@ -1173,7 +1088,7 @@
 
                             <span class="rank">
                                 ${String(
-                                    index + 1
+                                    song.rank || index + 1
                                 ).padStart(2, '0')}
                             </span>
 
@@ -1186,6 +1101,7 @@
                                                 class="song-artwork"
                                                 src="${escapeHtml(image)}"
                                                 alt=""
+                                                onerror="this.onerror=null;this.src='../images/no-image.png';"
                                             >
                                         `
                                         : ''
@@ -1200,7 +1116,7 @@
                                     </strong>
 
                                     <small>
-                                        Now in rotation
+                                        ${song.visible ? 'Shown on website' : 'Hidden from website'}
                                     </small>
 
                                 </div>
@@ -1545,56 +1461,40 @@
 
         return `
             <div class="form-field">
-
-                <label for="field-title">
-                    Song title
-                </label>
-
+                <label for="field-song-rank">Top 10 position</label>
                 <input
-                    id="field-title"
+                    id="field-song-rank"
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value="${editingItem?.rank || Math.min(data.songs.length + 1, 10)}"
                     required
-                    placeholder="Song title"
                 >
-
+                <small>Choose a position from 1 to 10.</small>
             </div>
 
-
             <div class="form-field">
-
-                <label for="field-artist">
-                    Artist
-                </label>
-
-                <input
-                    id="field-artist"
-                    required
-                    placeholder="Artist name"
-                >
-
+                <label for="field-title">Song title</label>
+                <input id="field-title" required placeholder="Song title">
             </div>
 
+            <div class="form-field">
+                <label for="field-artist">Artist</label>
+                <input id="field-artist" required placeholder="Artist name">
+            </div>
 
             <div class="form-field">
-
-                <label for="field-song-image">
-                    Song artwork
-                </label>
-
+                <label for="field-song-image">Song artwork</label>
                 <input
                     id="field-song-image"
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
                 >
-
             </div>
 
-
             <div class="form-field">
-
-                <label for="field-plays">
-                    Current plays
-                </label>
-
+                <label for="field-plays">Current plays</label>
                 <input
                     id="field-plays"
                     type="number"
@@ -1602,11 +1502,21 @@
                     value="0"
                     required
                 >
+            </div>
 
+            <div class="form-field form-field-checkbox">
+                <label class="checkbox-label" for="field-song-visible">
+                    <input
+                        id="field-song-visible"
+                        type="checkbox"
+                        checked
+                    >
+                    <span>Show this song on the website</span>
+                </label>
+                <small>Turn this off to keep the song in the dashboard but hide it from the public Top 10.</small>
             </div>
         `;
     }
-
 
     function getPostFields() {
 
@@ -1984,6 +1894,26 @@
         // --------------------------------------------------------
 
         if (type === 'song') {
+
+            const rankField =
+                document.getElementById(
+                    'field-song-rank'
+                );
+
+            if (rankField) {
+                rankField.value =
+                    item.rank || 1;
+            }
+
+            const visibleField =
+                document.getElementById(
+                    'field-song-visible'
+                );
+
+            if (visibleField) {
+                visibleField.checked =
+                    item.visible !== false;
+            }
 
             const titleField =
                 document.getElementById(
@@ -2363,10 +2293,20 @@
         }
 
 
+        const rank =
+            Number(
+                getFieldValue('field-song-rank')
+            );
+
+        if (!Number.isInteger(rank) || rank < 1 || rank > 10) {
+            throw new Error('Top 10 position must be a whole number from 1 to 10.');
+        }
+
+        const visibleField =
+            document.getElementById('field-song-visible');
+
         const payload = {
-            rank:
-                editingItem?.rank ||
-                data.songs.length + 1,
+            rank,
 
             title:
                 getFieldValue(
@@ -2385,7 +2325,12 @@
                     )
                 ) || 0,
 
-            image
+            image,
+
+            visible:
+                visibleField
+                    ? visibleField.checked
+                    : true
         };
 
 

@@ -1752,3 +1752,38 @@ button {
     overscroll-behavior: contain;
     margin: 20px 0;
 }
+
+
+/* ============================================================
+   TOP 10 SONG FORM / MODAL SCROLL
+   ============================================================ */
+
+.modal-backdrop {
+    align-items: flex-start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.modal {
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 20px 0;
+}
+
+.form-field-checkbox {
+    grid-column: 1 / -1;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--yellow);
+}

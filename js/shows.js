@@ -61,12 +61,19 @@
         }
 
         // Images uploaded through the API.
-        if (show.image.startsWith('/uploads/')) {
+        if (
+            show.image.startsWith('/uploads/') ||
+            show.image.startsWith('/images/')
+        ) {
             return show.image;
         }
 
         // Full external image URL.
         if (show.image.startsWith('http')) {
+            return show.image;
+        }
+
+        if (show.image.startsWith('./') || show.image.startsWith('../')) {
             return show.image;
         }
 
@@ -126,6 +133,7 @@
                                         src="${escapeHtml(image)}"
                                         alt="${escapeHtml(title)}"
                                         loading="lazy"
+                                        onerror="this.onerror=null;this.src='./images/no-image.png';"
                                     >
                                 `
                                 : `
