@@ -24,3 +24,4 @@ Put a rule in `css/site.css` when it affects more than one page. Keep page-speci
 The primary logo is `images/logo.png`. Shared header logo sizing is controlled by `.site-header .custom-logo-link img` in `css/site.css`.
 
 This project does not require a build step or package installation. Open `index.html` directly in a browser, or serve the folder with any basic static file server.
+
