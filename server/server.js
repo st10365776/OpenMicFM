@@ -6,6 +6,7 @@ const cors = require('cors');
 const pool = require('./db');
 
 const authRoutes = require('./routes/auth');
+const listenerRoutes = require('./routes/listeners');
 const showsRoutes = require('./routes/shows');
 const songsRoutes = require('./routes/songs');
 const postsRoutes = require('./routes/posts');
@@ -33,6 +34,7 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/listeners', listenerRoutes);
 app.use('/api/shows', showsRoutes);
 app.use('/api/songs', songsRoutes);
 app.use('/api/posts', postsRoutes);
