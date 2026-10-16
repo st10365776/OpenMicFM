@@ -7,68 +7,10 @@
 
     /*
      * The admin dashboard and API are hosted by the same Azure Web App.
-     *
-     * Using a relative API path means this works on:
-     *
-     * https://your-openmic-app.azurewebsites.net
-     *
-     * without hard-coding localhost or an old Azure hostname.
      */
     const API_BASE = '/api';
 
     const AUTH_KEY = 'openmicfm-token';
-
-
-    // ============================================================
-    // DEFAULT / FALLBACK DATA
-    // ============================================================
-
-    const DEFAULT_DATA = {
-        shows: [
-            {
-                time: '05:00 – 09:00',
-                name: 'Sunrise Mthatha',
-                presenter: 'Lwazi Ndlovu',
-                initials: 'LN',
-                tone: 'blue'
-            },
-            {
-                time: '09:00 – 12:00',
-                name: 'The Mid-Morning Mix',
-                presenter: 'Thando Mbeki',
-                initials: 'TM',
-                tone: 'yellow'
-            },
-            {
-                time: '12:00 – 15:00',
-                name: 'Lunch with Lungile',
-                presenter: 'Lungile Maseko',
-                initials: 'LM',
-                tone: 'green'
-            },
-            {
-                time: '15:00 – 18:00',
-                name: 'Drive Home',
-                presenter: 'Siyanda Gqoboka',
-                initials: 'SG',
-                tone: 'red'
-            },
-            {
-                time: '18:00 – 20:00',
-                name: 'The Evening Exchange',
-                presenter: 'Anele Radebe',
-                initials: 'AR',
-                tone: 'blue'
-            },
-            {
-                time: '20:00 – 22:00',
-                name: 'Open Mic Sessions',
-                presenter: 'Guest rotation',
-                initials: 'GR',
-                tone: 'yellow'
-            }
-        ],
-    };
 
 
     // ============================================================
@@ -86,6 +28,9 @@
 
     let activeModal = '';
     let editingItem = null;
+    let activeWeekOffset = 0;
+    let pickerDates = new Set();
+    let pickerCursor = null;
 
 
     // ============================================================
@@ -127,20 +72,23 @@
         profileInitials:
             document.querySelector('.profile > span'),
 
-        scheduleList:
-            document.getElementById('schedule-list'),
+        profileRole:
+            document.querySelector('.profile small'),
+
+        showDetails:
+            document.getElementById('show-details-backdrop'),
+
+        showDetailsContent:
+            document.getElementById('show-details-content'),
+
+        showDetailsClose:
+            document.getElementById('show-details-close'),
 
         overviewSchedule:
             document.getElementById('overview-schedule'),
 
         headerKickers:
             document.querySelectorAll('.header-kicker'),
-
-        dayTabs:
-            document.querySelectorAll('.day-tab'),
-
-        toolbarNote:
-            document.querySelector('.toolbar-note'),
 
         musicList:
             document.getElementById('music-list'),
@@ -280,6 +228,15 @@
                     : ''
             );
 
+        const showDates =
+            Array.isArray(show.show_dates)
+                ? [...new Set(
+                    show.show_dates
+                        .map(value => String(value).slice(0, 10))
+                        .filter(Boolean)
+                )].sort()
+                : [];
+
         return {
             ...show,
             name: show.name || show.title || '',
@@ -294,7 +251,14 @@
                     ? show.days_of_week
                     : show.day_of_week
                         ? [show.day_of_week]
-                        : []
+                        : [],
+            show_dates: showDates,
+            start_date: show.start_date
+                ? String(show.start_date).slice(0, 10)
+                : '',
+            end_date: show.end_date
+                ? String(show.end_date).slice(0, 10)
+                : ''
         };
     }
 
@@ -464,6 +428,15 @@
         return String(value)
             .replace(/\s+/g, ' ')
             .trim();
+    }
+
+
+    function formatDateInput(date) {
+        return [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('-');
     }
 
 
@@ -671,6 +644,14 @@
                     data.user.initials ||
                     getInitials(fullName);
             }
+
+            if (
+                elements.profileRole &&
+                data.user.role
+            ) {
+                elements.profileRole.textContent =
+                    data.user.role;
+            }
         }
 
         const activePanel =
@@ -830,175 +811,263 @@
         }
 
 
-        if (elements.dayTabs) {
-
-            elements.dayTabs.forEach((tab, index) => {
-
-                const date =
-                    new Date(today);
-
-                date.setDate(
-                    today.getDate() + index
-                );
-
-                const dayLabel =
-                    new Intl.DateTimeFormat(
-                        'en-US',
-                        { weekday: 'short' }
-                    ).format(date).toUpperCase();
-
-                const dayCode =
-                    new Intl.DateTimeFormat(
-                        'en-US',
-                        { weekday: 'short' }
-                    ).format(date);
-
-                if (tab.firstChild) {
-                    tab.firstChild.nodeValue =
-                        `${dayLabel} `;
-                }
-
-                const strong =
-                    tab.querySelector('strong');
-
-                if (strong) {
-                    strong.textContent =
-                        String(
-                            date.getDate()
-                        ).padStart(2, '0');
-                }
-
-                tab.dataset.day = dayCode;
-            });
-        }
     }
 
 
     function renderFullSchedule() {
 
-        if (!elements.scheduleList) {
+        const calendar =
+            document.querySelector('.schedule-table');
+
+        const toolbar =
+            document.querySelector('.toolbar');
+
+        if (!calendar || !toolbar) {
             return;
         }
 
-        const shows = data.shows;
+        const shows = data.shows.map(normalizeShow);
 
+        const today = new Date();
+        const todayKey = formatDateInput(today);
+        const weekStart = new Date(today);
+        weekStart.setDate(
+            today.getDate() - ((today.getDay() + 6) % 7) + activeWeekOffset * 7
+        );
+        weekStart.setHours(0, 0, 0, 0);
+
+        const days = Array.from({ length: 7 }, (_, index) => {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + index);
+
+            return {
+                date,
+                dateKey: formatDateInput(date),
+                label: new Intl.DateTimeFormat('en-US', {
+                    weekday: 'short'
+                }).format(date),
+                dayKey: new Intl.DateTimeFormat('en-US', {
+                    weekday: 'short'
+                }).format(date).slice(0, 3).toLowerCase()
+            };
+        });
+
+        const weekEnd = days[6].date;
+        const rangeFormatter = new Intl.DateTimeFormat('en-ZA', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+
+        const toneNames = ['blue', 'green', 'red', 'yellow'];
+
+        const showsForDay = day => shows
+            .map((show, index) => ({ show, index }))
+            .filter(({ show }) => {
+
+                // Shows assigned to specific on-air dates.
+                if (show.show_dates.length) {
+                    return show.show_dates.includes(day.dateKey);
+                }
+
+                // Legacy weekday-based shows.
+                const showDays = show.days_of_week.length
+                    ? show.days_of_week
+                    : show.day_of_week
+                        ? [show.day_of_week]
+                        : [];
+
+                if (!showDays.length) {
+                    return false;
+                }
+
+                const withinDateRange =
+                    (!show.start_date || show.start_date <= day.dateKey) &&
+                    (!show.end_date || show.end_date >= day.dateKey);
+
+                return withinDateRange && showDays.some(showDay =>
+                    String(showDay).slice(0, 3).toLowerCase() === day.dayKey
+                );
+            })
+            .sort((first, second) =>
+                String(first.show.start_time || '').localeCompare(
+                    String(second.show.start_time || '')
+                )
+            );
+
+        const weekShowCount = days.reduce(
+            (total, day) => total + showsForDay(day).length,
+            0
+        );
+
+        toolbar.innerHTML = `
+            <div class="calendar-controls" aria-label="Calendar navigation">
+                <button class="calendar-nav" type="button" data-calendar-week="-1" aria-label="Previous week">‹</button>
+                <strong>${rangeFormatter.format(weekStart)} – ${rangeFormatter.format(weekEnd)}</strong>
+                <button class="calendar-nav" type="button" data-calendar-week="1" aria-label="Next week">›</button>
+                <button class="calendar-today" type="button" data-calendar-today>Today</button>
+            </div>
+            <span class="toolbar-note">${weekShowCount} ${weekShowCount === 1 ? 'show' : 'shows'} this week</span>
+        `;
+
+        const dayColumns = days.map(day => {
+            const dayShows = showsForDay(day);
+
+            const events = dayShows.length
+                ? dayShows.map(({ show, index }) => {
+                    const tone = toneNames.includes(show.tone)
+                        ? show.tone
+                        : 'blue';
+
+                    return `
+                        <button class="calendar-event tone-${tone}"
+                            type="button" data-calendar-show="${index}">
+                            <time>${escapeHtml(show.time || '')}</time>
+                            <strong>${escapeHtml(show.name || '')}</strong>
+                            <span>${escapeHtml(show.presenter || '')}</span>
+                        </button>
+                    `;
+                }).join('')
+                : '<p class="calendar-empty">No shows</p>';
+
+            const isToday = day.dateKey === todayKey;
+
+            return `
+                <section class="calendar-day${isToday ? ' is-today' : ''}" aria-label="${day.label} ${day.date.getDate()}">
+                    <header><span>${day.label}${isToday ? ' · Today' : ''}</span><strong>${day.date.getDate()}</strong></header>
+                    <div class="calendar-day-events">${events}</div>
+                </section>
+            `;
+        }).join('');
+
+        calendar.innerHTML = `
+            <div class="calendar-grid" aria-label="Weekly show calendar">
+                <div class="calendar-days">${dayColumns}</div>
+            </div>
+        `;
+    }
+
+
+    // ============================================================
+    // SHOW DETAILS POPUP
+    // ============================================================
+
+    function openShowDetails(index) {
 
         if (
-            elements.toolbarNote &&
-            data.shows.length
+            !elements.showDetails ||
+            !elements.showDetailsContent
         ) {
-
-            const times =
-                data.shows
-                    .flatMap(show => [
-                        show.start_time,
-                        show.end_time
-                    ])
-                    .filter(Boolean)
-                    .sort();
-
-            if (times.length) {
-
-                elements.toolbarNote.textContent =
-                    `${data.shows.length} shows · ` +
-                    `${String(times[0]).slice(0, 5)} – ` +
-                    `${String(times[times.length - 1]).slice(0, 5)}`;
-            } else {
-
-                elements.toolbarNote.textContent =
-                    `${data.shows.length} shows`;
-            }
+            return;
         }
 
+        const show = data.shows[index];
 
-        const html =
-            shows.map((show, index) => {
+        if (!show) {
+            return;
+        }
 
-                const safeShow =
-                    normalizeShow(show);
+        const chipFormatter = new Intl.DateTimeFormat('en-ZA', {
+            day: 'numeric',
+            month: 'short',
+            timeZone: 'UTC'
+        });
 
-                return `
-                    <div class="schedule-item">
+        const chips = show.show_dates.length
+            ? show.show_dates.map(value =>
+                chipFormatter.format(new Date(`${value}T00:00:00Z`))
+            )
+            : (
+                show.days_of_week.length
+                    ? show.days_of_week
+                    : show.day_of_week
+                        ? [show.day_of_week]
+                        : []
+            );
 
-                        <time>
-                            ${escapeHtml(
-                                safeShow.time || ''
-                            )}
-                        </time>
+        elements.showDetailsContent.innerHTML = `
+            <p class="eyebrow">SHOW DETAILS</p>
 
-                        <div class="presenter">
+            <h2 id="show-details-title">
+                ${escapeHtml(show.name || '')}
+            </h2>
 
-                            <span class="presenter-avatar">
-                                ${escapeHtml(
-                                    safeShow.initials || ''
-                                )}
-                            </span>
+            <p class="details-presenter">
+                Presented by
+                <strong>${escapeHtml(show.presenter || 'Unassigned')}</strong>
+            </p>
 
-                            <div>
+            <dl class="details-meta">
+                <div>
+                    <dt>Time slot</dt>
+                    <dd>${escapeHtml(show.time || 'Not set')}</dd>
+                </div>
 
-                                <strong>
-                                    ${escapeHtml(
-                                        safeShow.name || ''
-                                    )}
-                                </strong>
-
-                                <small>
-                                    ${escapeHtml(
-                                        safeShow.presenter || ''
-                                    )}
-                                </small>
-
-                            </div>
-
-                        </div>
-
-                        <span class="status-pill">
-                            Confirmed
-                        </span>
-
+                <div>
+                    <dt>${show.show_dates.length ? 'Dates' : 'Days'}</dt>
+                    <dd>
                         ${
-                            safeShow.id
-                                ? `
-                                    <div class="action-menu">
-
-                                        <button
-                                            class="row-actions"
-                                            type="button"
-                                            aria-label="Show actions"
-                                        >
-                                            ···
-                                        </button>
-
-                                        <div class="action-menu-options">
-
-                                            <button
-                                                type="button"
-                                                data-edit-type="show"
-                                                data-edit-index="${index}"
-                                            >
-                                                Edit
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                data-delete-show="${index}"
-                                            >
-                                                Delete
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-                                `
-                                : ''
+                            chips.length
+                                ? `${chips.length} ${chips.length === 1 ? 'date' : 'dates'}`
+                                : 'Not set'
                         }
+                    </dd>
+                </div>
+            </dl>
 
-                    </div>
-                `;
-            }).join('');
+            ${
+                chips.length
+                    ? `
+                        <div class="details-days" aria-label="On-air dates">
+                            ${chips
+                                .map(chip => `<span>${escapeHtml(chip)}</span>`)
+                                .join('')}
+                        </div>
+                    `
+                    : ''
+            }
 
-        elements.scheduleList.innerHTML =
-            html;
+            ${
+                show.description
+                    ? `<p class="details-description">${escapeHtml(show.description)}</p>`
+                    : ''
+            }
+
+            ${
+                show.id
+                    ? `
+                        <div class="details-actions">
+                            <button
+                                class="button button-primary"
+                                type="button"
+                                data-edit-type="show"
+                                data-edit-index="${index}"
+                            >
+                                Edit show
+                            </button>
+
+                            <button
+                                class="details-delete"
+                                type="button"
+                                data-delete-show="${index}"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    `
+                    : ''
+            }
+        `;
+
+        elements.showDetails.hidden = false;
+    }
+
+
+    function closeShowDetails() {
+
+        if (elements.showDetails) {
+            elements.showDetails.hidden = true;
+        }
     }
 
 
@@ -1017,8 +1086,56 @@
                 ).format(new Date())} line-up`;
         }
 
-        const html =
+        const todayDayKey =
+            new Intl.DateTimeFormat(
+                'en-US',
+                { weekday: 'short' }
+            )
+                .format(new Date())
+                .slice(0, 3)
+                .toLowerCase();
+
+        const todaysShows =
             data.shows
+                .map(normalizeShow)
+                .filter(show => {
+
+                    if (show.show_dates.length) {
+                        return show.show_dates.includes(todayKey);
+                    }
+
+                    const days =
+                        show.days_of_week.length
+                            ? show.days_of_week
+                            : show.day_of_week
+                                ? [show.day_of_week]
+                                : [];
+
+                    const withinRange =
+                        (!show.start_date || show.start_date <= todayKey) &&
+                        (!show.end_date || show.end_date >= todayKey);
+
+                    return (
+                        withinRange &&
+                        (!days.length ||
+                            days.some(day =>
+                                String(day)
+                                    .slice(0, 3)
+                                    .toLowerCase() ===
+                                todayDayKey
+                            )
+                        )
+                    );
+                })
+                .sort((first, second) =>
+                    String(first.start_time || '')
+                        .localeCompare(
+                            String(second.start_time || '')
+                        )
+                );
+
+        const html =
+            todaysShows
                 .slice(0, 4)
                 .map(show => {
 
@@ -1062,7 +1179,8 @@
                 .join('');
 
         elements.overviewSchedule.innerHTML =
-            html;
+            html ||
+            '<p class="muted">No shows scheduled today.</p>';
     }
 
 
@@ -1327,88 +1445,90 @@
 
         return `
             <div class="form-field">
-
-                <label>
-                    Day
-                </label>
-
-                <div
-                    class="day-checkboxes"
-                    id="field-days"
-                >
-
-                    ${
-                        [
-                            ['Mon', 'Monday'],
-                            ['Tue', 'Tuesday'],
-                            ['Wed', 'Wednesday'],
-                            ['Thu', 'Thursday'],
-                            ['Fri', 'Friday'],
-                            ['Sat', 'Saturday'],
-                            ['Sun', 'Sunday']
-                        ]
-                        .map(([value, label]) => `
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    name="show-days"
-                                    value="${value}"
-                                >
-                                ${label}
-                            </label>
-                        `)
-                        .join('')
-                    }
-
-                </div>
-
-            </div>
-
-
-            <div class="form-field">
-
-                <label for="field-time">
-                    Time slot
-                </label>
-
-                <input
-                    id="field-time"
-                    required
-                    placeholder="09:00 – 12:00"
-                >
-
-            </div>
-
-
-            <div class="form-field">
-
-                <label for="field-name">
-                    Card name
-                </label>
-
+                <label for="field-name">Show name</label>
                 <input
                     id="field-name"
                     required
                     placeholder="The Mid-Morning Mix"
                 >
-
             </div>
 
+            <div class="form-field">
+                <label for="field-presenter">Presenter</label>
+                <input
+                    id="field-presenter"
+                    required
+                    placeholder="Presenter name"
+                >
+            </div>
 
             <div class="form-field">
-
-                <label for="field-title">
-                    Show title
-                </label>
-
+                <label for="field-title">Show title</label>
                 <input
                     id="field-title"
                     required
-                    placeholder="The Mid-Morning Mix"
+                    placeholder="On-air title"
                 >
-
             </div>
 
+            <div class="form-field">
+                <label for="field-time">Time slot</label>
+                <input
+                    id="field-time"
+                    required
+                    placeholder="09:00 – 12:00"
+                >
+            </div>
+
+            <div class="form-field full">
+
+                <label>
+                    On-air dates
+                </label>
+
+                <div class="date-picker" id="field-dates">
+
+                    <div class="date-picker-head">
+                        <button
+                            type="button"
+                            class="date-nav"
+                            data-date-nav="-1"
+                            aria-label="Previous month"
+                        >‹</button>
+
+                        <strong id="date-picker-label"></strong>
+
+                        <button
+                            type="button"
+                            class="date-nav"
+                            data-date-nav="1"
+                            aria-label="Next month"
+                        >›</button>
+                    </div>
+
+                    <div class="date-picker-weekdays" aria-hidden="true">
+                        <span>M</span><span>T</span><span>W</span>
+                        <span>T</span><span>F</span><span>S</span>
+                        <span>S</span>
+                    </div>
+
+                    <div
+                        class="date-picker-grid"
+                        id="date-picker-grid"
+                    ></div>
+
+                    <div
+                        class="selected-dates"
+                        id="selected-dates"
+                    ></div>
+
+                </div>
+
+                <small class="field-hint">
+                    Click dates to pick every day this show airs.
+                </small>
+
+            </div>
 
             <div class="form-field full">
 
@@ -1424,7 +1544,6 @@
 
             </div>
 
-
             <div class="form-field full">
 
                 <label for="field-image">
@@ -1435,21 +1554,6 @@
                     id="field-image"
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
-                >
-
-            </div>
-
-
-            <div class="form-field full">
-
-                <label for="field-presenter">
-                    Presenter
-                </label>
-
-                <input
-                    id="field-presenter"
-                    required
-                    placeholder="Presenter name"
                 >
 
             </div>
@@ -1751,6 +1855,10 @@
         elements.modalFields.innerHTML =
             getModalFields(type);
 
+        if (type === 'show') {
+            setupShowDatePicker([]);
+        }
+
         elements.modal.hidden = false;
 
         const firstField =
@@ -1781,6 +1889,8 @@
         activeModal = type;
         editingItem = item;
 
+        closeShowDetails();
+
         elements.modalTitle.textContent =
             `Edit ${
                 type === 'post'
@@ -1800,25 +1910,7 @@
 
         if (type === 'show') {
 
-            const days =
-                item.days_of_week?.length
-                    ? item.days_of_week
-                    : item.day_of_week
-                        ? [item.day_of_week]
-                        : [];
-
-            document
-                .querySelectorAll(
-                    'input[name="show-days"]'
-                )
-                .forEach(field => {
-
-                    field.checked =
-                        days.includes(
-                            field.value
-                        );
-                });
-
+            setupShowDatePicker(item.show_dates || []);
 
             const timeField =
                 document.getElementById(
@@ -2048,16 +2140,6 @@
     }
 
 
-    function getCheckedValues(name) {
-
-        return [
-            ...document.querySelectorAll(
-                `input[name="${name}"]:checked`
-            )
-        ].map(field => field.value);
-    }
-
-
     function getEditorValue() {
 
         const editor =
@@ -2121,56 +2203,275 @@
 
 
     // ============================================================
+    // MULTI-DATE PICKER
+    // ============================================================
+
+    function renderDatePicker() {
+
+        const grid =
+            document.getElementById('date-picker-grid');
+
+        const label =
+            document.getElementById('date-picker-label');
+
+        const chips =
+            document.getElementById('selected-dates');
+
+        if (!grid || !label || !chips) {
+            return;
+        }
+
+        if (!pickerCursor) {
+            pickerCursor = new Date();
+        }
+
+        const year = pickerCursor.getFullYear();
+        const month = pickerCursor.getMonth();
+
+        label.textContent =
+            new Intl.DateTimeFormat('en-ZA', {
+                month: 'long',
+                year: 'numeric'
+            }).format(pickerCursor);
+
+        const leadingBlanks =
+            (new Date(year, month, 1).getDay() + 6) % 7;
+
+        const daysInMonth =
+            new Date(year, month + 1, 0).getDate();
+
+        const todayKey = formatDateInput(new Date());
+
+        let html = '';
+
+        for (let i = 0; i < leadingBlanks; i++) {
+            html += '<span class="date-cell empty"></span>';
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+
+            const key =
+                `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            const classes = ['date-cell'];
+
+            if (pickerDates.has(key)) {
+                classes.push('selected');
+            }
+
+            if (key === todayKey) {
+                classes.push('today');
+            }
+
+            html += `<button type="button" class="${classes.join(' ')}" data-date="${key}">${day}</button>`;
+        }
+
+        grid.innerHTML = html;
+
+        const sorted = [...pickerDates].sort();
+
+        chips.innerHTML = sorted.length
+            ? sorted
+                .map(key => {
+
+                    const text =
+                        new Intl.DateTimeFormat('en-ZA', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            timeZone: 'UTC'
+                        }).format(new Date(`${key}T00:00:00Z`));
+
+                    return `<button type="button" class="selected-date" data-date-remove="${key}">${text}<span aria-hidden="true">×</span></button>`;
+                })
+                .join('')
+            : '<span class="selected-dates-empty">No dates picked yet</span>';
+    }
+
+
+    function handleDatePickerClick(event) {
+
+        const nav =
+            event.target.closest('[data-date-nav]');
+
+        if (nav) {
+
+            pickerCursor = new Date(
+                pickerCursor.getFullYear(),
+                pickerCursor.getMonth() +
+                    Number(nav.dataset.dateNav),
+                1
+            );
+
+            renderDatePicker();
+            return;
+        }
+
+        const cell =
+            event.target.closest('[data-date]');
+
+        if (cell) {
+
+            const key = cell.dataset.date;
+
+            if (pickerDates.has(key)) {
+                pickerDates.delete(key);
+            } else {
+                pickerDates.add(key);
+            }
+
+            renderDatePicker();
+            return;
+        }
+
+        const remove =
+            event.target.closest('[data-date-remove]');
+
+        if (remove) {
+            pickerDates.delete(remove.dataset.dateRemove);
+            renderDatePicker();
+        }
+    }
+
+
+    function setupShowDatePicker(dates) {
+
+        pickerDates = new Set(dates);
+
+        const first = [...pickerDates].sort()[0];
+
+        pickerCursor = first
+            ? new Date(`${first}T00:00:00`)
+            : new Date();
+
+        const picker =
+            document.getElementById('field-dates');
+
+        if (picker) {
+            picker.addEventListener(
+                'click',
+                handleDatePickerClick
+            );
+        }
+
+        renderDatePicker();
+    }
+
+
+    // ============================================================
     // SHOW SAVE
     // ============================================================
+
+    function timeToMinutes(value) {
+        const match = String(value || '').match(/^(\d{2}):(\d{2})/);
+
+        if (!match) {
+            return null;
+        }
+
+        return Number(match[1]) * 60 + Number(match[2]);
+    }
+
+
+    function findShowScheduleConflict({
+        dates,
+        startTime,
+        endTime,
+        excludeId
+    }) {
+        const newStart = timeToMinutes(startTime);
+        const newEnd = timeToMinutes(endTime);
+
+        if (
+            newStart === null ||
+            newEnd === null ||
+            newEnd <= newStart
+        ) {
+            throw new Error('Enter a valid time range. The end time must be after the start time.');
+        }
+
+        let earliestConflict = null;
+
+        for (const date of dates) {
+
+            const weekday =
+                new Intl.DateTimeFormat('en-US', {
+                    weekday: 'short',
+                    timeZone: 'UTC'
+                }).format(new Date(`${date}T00:00:00Z`));
+
+            for (const show of data.shows) {
+                if (excludeId && String(show.id) === String(excludeId)) {
+                    continue;
+                }
+
+                const existingStartTime = timeToMinutes(show.start_time);
+                const existingEndTime = timeToMinutes(show.end_time);
+
+                if (
+                    existingStartTime === null ||
+                    existingEndTime === null ||
+                    newStart >= existingEndTime ||
+                    newEnd <= existingStartTime
+                ) {
+                    continue;
+                }
+
+                const occurs = show.show_dates?.length
+                    ? show.show_dates.includes(date)
+                    : (
+                        show.days_of_week?.length
+                            ? show.days_of_week
+                            : show.day_of_week
+                                ? [show.day_of_week]
+                                : []
+                    ).some(day =>
+                        String(day).slice(0, 3) === weekday
+                    ) &&
+                        (!show.start_date || show.start_date <= date) &&
+                        (!show.end_date || show.end_date >= date);
+
+                if (
+                    occurs &&
+                    (
+                        !earliestConflict ||
+                        date < earliestConflict.date
+                    )
+                ) {
+                    earliestConflict = {
+                        date,
+                        show,
+                        startTime:
+                            String(show.start_time).slice(0, 5),
+                        endTime:
+                            String(show.end_time).slice(0, 5)
+                    };
+                }
+            }
+        }
+
+        return earliestConflict;
+    }
+
+
+    function formatShowConflictMessage(conflict) {
+        const date = new Intl.DateTimeFormat('en-ZA', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'UTC'
+        }).format(new Date(`${conflict.date}T00:00:00Z`));
+
+        return `There's already a show on ${date} from ${conflict.startTime} to ${conflict.endTime}: ${conflict.show.name}. Choose another time or date.`;
+    }
 
     async function saveShow() {
 
         const presenter =
             getFieldValue('field-presenter');
 
-        const daysOfWeek =
-            getCheckedValues('show-days');
-
-        const imageField =
-            document.getElementById(
-                'field-image'
-            );
-
-        let image =
-            editingItem?.image || '';
-
-
-        // Upload image if one was selected.
-        if (
-            imageField &&
-            imageField.files &&
-            imageField.files[0]
-        ) {
-
-            const upload =
-                new FormData();
-
-            upload.append(
-                'image',
-                imageField.files[0]
-            );
-
-            const result =
-                await apiRequest(
-                    '/shows/image',
-                    {
-                        method: 'POST',
-                        body: upload
-                    }
-                );
-
-            image =
-                result?.url ||
-                result?.path ||
-                '';
-        }
-
+        const dates = [...pickerDates].sort();
 
         const time =
             getFieldValue('field-time');
@@ -2189,20 +2490,42 @@
         }
 
 
-        if (!daysOfWeek.length) {
+        if (!dates.length) {
 
             throw new Error(
-                'Please select at least one day.'
+                'Pick at least one date for this show.'
             );
+        }
+
+        const conflict = findShowScheduleConflict({
+            dates,
+            startTime: start,
+            endTime: end,
+            excludeId: editingItem?.id
+        });
+
+        if (conflict) {
+            throw new Error(formatShowConflictMessage(conflict));
+        }
+
+        const imageField =
+            document.getElementById('field-image');
+
+        let image = editingItem?.image || '';
+
+        if (imageField?.files?.[0]) {
+            const upload = new FormData();
+            upload.append('image', imageField.files[0]);
+            const result = await apiRequest('/shows/image', {
+                method: 'POST',
+                body: upload
+            });
+            image = result?.url || result?.path || '';
         }
 
 
         const payload = {
-            day_of_week:
-                daysOfWeek[0],
-
-            days_of_week:
-                daysOfWeek,
+            dates,
 
             start_time:
                 start,
@@ -2460,6 +2783,8 @@
             return;
         }
 
+        closeShowDetails();
+
         await apiRequest(
             `/shows/${show.id}`,
             {
@@ -2676,9 +3001,6 @@
 
     const PAGE_TITLES = {
 
-        overview:
-            'Good morning, Thando',
-
         schedule:
             'Plan the day',
 
@@ -2688,6 +3010,22 @@
         news:
             'Make the news'
     };
+
+
+    function getGreeting() {
+
+        const hour = new Date().getHours();
+
+        if (hour < 12) {
+            return 'Good morning';
+        }
+
+        if (hour < 17) {
+            return 'Good afternoon';
+        }
+
+        return 'Good evening';
+    }
 
 
     function navigateTo(section) {
@@ -2747,9 +3085,9 @@
 
         const title =
             section === 'overview'
-                ? `Good morning, ${firstName}`
+                ? `${getGreeting()}, ${firstName}`
                 : PAGE_TITLES[section] ||
-                    PAGE_TITLES.overview;
+                    `${getGreeting()}, ${firstName}`;
 
         elements.pageHeading.innerHTML =
             `${escapeHtml(title)} <span>✦</span>`;
@@ -2863,6 +3201,42 @@
 
     function setupEventListeners() {
 
+        const scheduleToolbar =
+            document.querySelector('.toolbar');
+
+        const scheduleCalendar =
+            document.querySelector('.schedule-table');
+
+        if (scheduleToolbar) {
+            scheduleToolbar.addEventListener('click', event => {
+                const target = event.target.closest('button');
+
+                if (!target) {
+                    return;
+                }
+
+                if (target.dataset.calendarWeek) {
+                    activeWeekOffset += Number(target.dataset.calendarWeek);
+                    renderFullSchedule();
+                } else if (target.hasAttribute('data-calendar-today')) {
+                    activeWeekOffset = 0;
+                    renderFullSchedule();
+                }
+            });
+        }
+
+        if (scheduleCalendar) {
+            scheduleCalendar.addEventListener('click', event => {
+                const target = event.target.closest('[data-calendar-show]');
+
+                if (!target) {
+                    return;
+                }
+
+                openShowDetails(Number(target.dataset.calendarShow));
+            });
+        }
+
         // --------------------------------------------------------
         // Authentication
         // --------------------------------------------------------
@@ -2946,6 +3320,32 @@
         }
 
 
+        if (
+            elements.showDetails &&
+            elements.showDetailsClose
+        ) {
+
+            elements.showDetailsClose.addEventListener(
+                'click',
+                closeShowDetails
+            );
+
+
+            elements.showDetails.addEventListener(
+                'click',
+                event => {
+
+                    if (
+                        event.target ===
+                        elements.showDetails
+                    ) {
+                        closeShowDetails();
+                    }
+                }
+            );
+        }
+
+
         if (elements.itemForm) {
 
             elements.itemForm.addEventListener(
@@ -3022,10 +3422,19 @@
             'keydown',
             event => {
 
+                if (event.key !== 'Escape') {
+                    return;
+                }
+
                 if (
-                    event.key === 'Escape' &&
-                    activeModal
+                    elements.showDetails &&
+                    !elements.showDetails.hidden
                 ) {
+                    closeShowDetails();
+                    return;
+                }
+
+                if (activeModal) {
                     closeModal();
                 }
             }
