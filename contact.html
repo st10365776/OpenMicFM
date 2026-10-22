@@ -926,7 +926,7 @@ var srfm_submit = {"site_url":"","nonce":"17173fb6d0","messages":{"srfm_valid_ph
 				var email = contactForm.querySelector('input[type="email"]').value.trim();
 				var message = contactForm.querySelector('textarea').value.trim();
 
-				fetch('http://localhost:4000/api/contact', {
+				fetch('/api/contact', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'

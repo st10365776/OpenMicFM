@@ -6,6 +6,7 @@
     "node": "22.x"
   },
   "scripts": {
+    "postinstall": "npm --prefix server ci --omit=dev",
     "start": "node server/server.js"
   }
 }

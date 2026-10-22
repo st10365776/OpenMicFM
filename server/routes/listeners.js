@@ -54,16 +54,16 @@ router.post('/register', async (req, res) => {
     // Encrypt the password using a secure hash
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Save the listener in PostgreSQL
+    // Save the listener in SQL Server
     const result = await pool.query(
       `INSERT INTO listeners
        (full_name, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, full_name, email`,
+       OUTPUT INSERTED.id, INSERTED.full_name, INSERTED.email
+       VALUES (@p1, @p2, @p3)`,
       [name, cleanEmail, passwordHash]
     );
 
-    const listener = result.rows[0];
+    const listener = result.recordset[0];
 
     res.status(201).json({
       message: 'Registration successful.',
@@ -75,7 +75,7 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (error) {
-    if (error.code === '23505') {
+    if (error.number === 2601 || error.number === 2627) {
       return res.status(409).json({
         error: 'This email is already registered.'
       });
@@ -110,11 +110,11 @@ router.post('/login', async (req, res) => {
     const result = await pool.query(
       `SELECT id, full_name, email, password_hash
        FROM listeners
-       WHERE LOWER(email) = $1`,
+       WHERE LOWER(email) = @p1`,
       [email.trim().toLowerCase()]
     );
 
-    const listener = result.rows[0];
+    const listener = result.recordset[0];
 
     if (
       !listener ||
@@ -183,11 +183,11 @@ router.get('/me', async (req, res) => {
     const result = await pool.query(
       `SELECT id, full_name, email
        FROM listeners
-       WHERE id = $1`,
+       WHERE id = @p1`,
       [decoded.id]
     );
 
-    const listener = result.rows[0];
+    const listener = result.recordset[0];
 
     if (!listener) {
       return res.status(401).json({

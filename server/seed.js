@@ -42,53 +42,53 @@ function slugify(title) {
 }
 
 async function seed() {
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await pool.initialize();
 
     // Admin user: manager@openmicfm.co.za / openmic2026  (CHANGE THIS PASSWORD AFTER FIRST LOGIN)
     const passwordHash = await bcrypt.hash('openmic2026', 10);
-    await client.query(
-      `INSERT INTO admin_users (email, password_hash, full_name, initials, role)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO NOTHING`,
-      ['manager@openmicfm.co.za', passwordHash, 'Thando Mbeki', 'TM', 'station_manager']
-    );
-
-    for (const s of shows) {
+    await pool.transaction(async client => {
       await client.query(
-        `INSERT INTO shows (day_of_week, start_time, end_time, name, title, presenter, initials, tone, description, image)
-         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-         WHERE NOT EXISTS (SELECT 1 FROM shows WHERE day_of_week = $1 AND name = $4)`,
-        s
+        `INSERT INTO admin_users (email, password_hash, full_name, initials, role)
+         SELECT @p1, @p2, @p3, @p4, @p5
+         WHERE NOT EXISTS (SELECT 1 FROM admin_users WHERE email = @p1)`,
+        ['manager@openmicfm.co.za', passwordHash, 'Thando Mbeki', 'TM', 'station_manager']
       );
-    }
 
-    for (const s of songs) {
-      await client.query(
-        `INSERT INTO songs (rank, title, artist, plays) VALUES ($1, $2, $3, $4)
-         ON CONFLICT DO NOTHING`,
-        s
-      );
-    }
+      for (const s of shows) {
+        await client.query(
+          `INSERT INTO shows (day_of_week, start_time, end_time, name, title, presenter, initials, tone, description, image)
+           SELECT @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10
+           WHERE NOT EXISTS (SELECT 1 FROM shows WHERE day_of_week = @p1 AND name = @p4)`,
+          s
+        );
+      }
 
-    for (const [type, title, excerpt, status] of posts) {
-      await client.query(
-        `INSERT INTO posts (type, title, slug, excerpt, status, published_at)
-         VALUES ($1, $2, $3, $4, $5, CASE WHEN $5 = 'Published' THEN now() ELSE NULL END)
-         ON CONFLICT (slug) DO NOTHING`,
-        [type, title, slugify(title), excerpt, status]
-      );
-    }
+      for (const s of songs) {
+        await client.query(
+          `INSERT INTO songs (rank, title, artist, plays)
+           SELECT @p1, @p2, @p3, @p4
+           WHERE NOT EXISTS (SELECT 1 FROM songs WHERE rank = @p1)`,
+          s
+        );
+      }
 
-    await client.query('COMMIT');
+      for (const [type, title, excerpt, status] of posts) {
+        await client.query(
+          `INSERT INTO posts (type, title, slug, excerpt, status, published_at)
+           SELECT @p1, @p2, @p3, @p4, @p5, CASE WHEN @p5 = 'Published' THEN SYSUTCDATETIME() ELSE NULL END
+           WHERE NOT EXISTS (SELECT 1 FROM posts WHERE slug = @p3)`,
+          [type, title, slugify(title), excerpt, status]
+        );
+      }
+    });
+
     console.log('Seed complete. Admin login -> manager@openmicfm.co.za / openmic2026');
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error('Seed failed:', err);
+    process.exitCode = 1;
   } finally {
-    client.release();
-    await pool.end();
+    await pool.close();
   }
 }
 

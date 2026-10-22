@@ -25,7 +25,7 @@ app.use(express.static(path.join(__dirname, '..')));
 
 app.get('/api/health', async (_req, res) => {
 	try {
-		await pool.query('SELECT 1');
+		await pool.query('SELECT 1 AS ok');
 		res.json({ ok: true, database: 'connected' });
 	} catch (err) {
 		console.error(err);
@@ -44,37 +44,11 @@ app.use('/api/dashboard', dashboardRoutes);
 const PORT = process.env.PORT || 4000;
 
 async function start() {
-	await pool.query(`
-		ALTER TABLE shows
-		ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '',
-		ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '',
-		ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '',
-		ADD COLUMN IF NOT EXISTS days_of_week TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-		ADD COLUMN IF NOT EXISTS start_date DATE,
-		ADD COLUMN IF NOT EXISTS end_date DATE,
-		ADD COLUMN IF NOT EXISTS show_dates DATE[] NOT NULL DEFAULT ARRAY[]::DATE[]
-	`);
-	await pool.query(`
-		UPDATE shows
-		SET days_of_week = ARRAY[day_of_week]
-		WHERE cardinality(days_of_week) = 0
-	`);
-	await pool.query(`
-		ALTER TABLE posts
-		ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT ''
-	`);
-	await pool.query(`
-		ALTER TABLE songs
-		ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '',
-		ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT NULL DEFAULT TRUE
-	`);
-	await pool.query(`
-		UPDATE songs SET visible = TRUE WHERE visible IS NULL
-	`);
+	await pool.initialize();
 	app.listen(PORT, () => console.log(`OpenMicFM running on port ${PORT}`));
 }
 
 start().catch(error => {
-	console.error('Unable to prepare the shows table.', error);
+	console.error('Unable to initialize the SQL Server database.', error);
 	process.exitCode = 1;
 });

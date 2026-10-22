@@ -91,14 +91,41 @@
         `;
     }
 
-    function renderGrid(grid, posts) {
+    function renderGrid(grid, posts, emptyMessage = 'No published stories in this section yet.') {
         if (!grid) return;
 
         grid.innerHTML = posts.length
             ? posts.map(createCard).join('')
-            : `<p class="openmic-news-empty">No published stories in this section yet.</p>`;
+            : `<p class="openmic-news-empty">${escapeHtml(emptyMessage)}</p>`;
 
         grid.dataset.total = String(posts.length);
+    }
+
+    function setupNewsSearch(grid, posts) {
+        if (!grid) return;
+
+        const search = document.querySelector(`[data-news-search][aria-controls="${grid.id}"]`);
+        if (!search) {
+            renderGrid(grid, posts);
+            return;
+        }
+
+        const filterPosts = () => {
+            const query = search.value.trim().toLocaleLowerCase();
+            const matchingPosts = query
+                ? posts.filter(post => [post.title, post.excerpt, post.body]
+                    .some(value => String(value || '').toLocaleLowerCase().includes(query)))
+                : posts;
+
+            renderGrid(
+                grid,
+                matchingPosts,
+                query ? 'No stories match your search.' : 'No published stories in this section yet.'
+            );
+        };
+
+        search.addEventListener('input', filterPosts);
+        filterPosts();
     }
 
     async function render() {
@@ -108,19 +135,19 @@
         try {
             if (path.endsWith('/sports.html')) {
                 const posts = await getPublishedPosts('Sport');
-                renderGrid(grids[0], posts);
+                setupNewsSearch(grids[0], posts);
                 return;
             }
 
             if (path.endsWith('/local.html')) {
                 const posts = await getPublishedPosts('Local');
-                renderGrid(grids[0], posts);
+                setupNewsSearch(grids[0], posts);
                 return;
             }
 
             if (path.endsWith('/national-news.html')) {
                 const posts = await getPublishedPosts('National');
-                renderGrid(grids[0], posts);
+                setupNewsSearch(grids[0], posts);
                 return;
             }
 
@@ -131,8 +158,8 @@
                 ]);
 
                 // Homepage "Your Top stories" contains separate Local and National grids.
-                renderGrid(grids[0], local.slice(0, 3));
-                renderGrid(grids[1], national.slice(0, 3));
+                renderGrid(grids[0], local.slice(0, 2));
+                renderGrid(grids[1], national.slice(0, 2));
             }
         } catch (error) {
             console.error('OpenMicFM news error:', error);

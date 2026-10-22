@@ -6,7 +6,6 @@ const { requireAuth } = require('../middleware/auth');
 const { actorName, recordActivity } = require('../utils/activity');
 
 const router = express.Router();
-const SCHEDULE_LOCK_ID = 87654321;
 const upload = multer({
   dest: path.join(__dirname, '..', 'uploads'),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -41,6 +40,15 @@ function deriveDaysOfWeek(dates) {
   return [...new Set(dates.map(date => names[new Date(`${date}T00:00:00Z`).getUTCDay()]))];
 }
 
+function formatShow(show) {
+  if (!show) return show;
+  return {
+    ...show,
+    days_of_week: JSON.parse(show.days_of_week || '[]'),
+    show_dates: JSON.parse(show.show_dates || '[]')
+  };
+}
+
 function validateShow(body, dates, startTime, endTime) {
   if (!dates.length ||
       !validTime(startTime) || !validTime(endTime) || startTime >= endTime ||
@@ -59,51 +67,59 @@ async function saveShowWithoutConflict({
   query,
   values
 }) {
-  const client = await pool.connect();
+  return pool.transaction(async client => {
+    await client.query(`
+      DECLARE @lock_result INT;
+      EXEC @lock_result = sys.sp_getapplock
+        @Resource = N'OpenMicFM:show-schedule',
+        @LockMode = 'Exclusive',
+        @LockOwner = 'Transaction',
+        @LockTimeout = 10000;
+      IF @lock_result < 0 THROW 50000, 'Could not acquire the schedule lock.', 1;
+    `);
 
-  try {
-    await client.query('BEGIN');
-    await client.query('SELECT pg_advisory_xact_lock($1)', [SCHEDULE_LOCK_ID]);
-
-    const { rows: conflicts } = await client.query(
+    const { recordset: conflicts } = await client.query(
       `WITH requested AS (
-         SELECT d::date AS show_date,
-                (ARRAY['Mon','Tue','Wed','Thu','Fri','Sat','Sun'])[EXTRACT(ISODOW FROM d::date)::int] AS day_name
-         FROM unnest($1::date[]) AS d
+         SELECT TRY_CONVERT(date, [value]) AS show_date,
+                CHOOSE(
+                  ((DATEDIFF(day, CONVERT(date, '19000107'), TRY_CONVERT(date, [value])) % 7 + 7) % 7) + 1,
+                  'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'
+                ) AS day_name
+         FROM OPENJSON(@p1)
        )
-       SELECT existing.name, existing.start_time, existing.end_time,
-              requested.show_date::text AS conflict_date
+       SELECT TOP (1) existing.name, existing.start_time, existing.end_time,
+              CONVERT(char(10), requested.show_date, 23) AS conflict_date
        FROM shows existing
        JOIN requested
-         ON requested.show_date = ANY(COALESCE(existing.show_dates, ARRAY[]::date[]))
-         OR (
-              COALESCE(cardinality(existing.show_dates), 0) = 0
-              AND requested.day_name = ANY(COALESCE(NULLIF(existing.days_of_week, ARRAY[]::text[]), ARRAY[existing.day_of_week]))
-              AND requested.show_date >= COALESCE(existing.start_date, requested.show_date)
-              AND requested.show_date <= COALESCE(existing.end_date, 'infinity'::date)
+         ON EXISTS (
+              SELECT 1 FROM OPENJSON(existing.show_dates) saved
+              WHERE TRY_CONVERT(date, saved.[value]) = requested.show_date
             )
-       WHERE $2::time < existing.end_time
-         AND $3::time > existing.start_time
-         AND ($4::int IS NULL OR existing.id <> $4)
-       ORDER BY requested.show_date
-       LIMIT 1`,
+         OR (
+              NOT EXISTS (SELECT 1 FROM OPENJSON(existing.show_dates))
+              AND EXISTS (
+                SELECT 1
+                FROM OPENJSON(CASE
+                  WHEN ISJSON(existing.days_of_week) = 1 AND existing.days_of_week <> N'[]'
+                    THEN existing.days_of_week
+                  ELSE CONCAT(N'["', existing.day_of_week, N'"]')
+                END) saved_day
+                WHERE saved_day.[value] = requested.day_name
+              )
+              AND requested.show_date >= COALESCE(existing.start_date, requested.show_date)
+              AND requested.show_date <= COALESCE(existing.end_date, requested.show_date)
+            )
+       WHERE @p2 < existing.end_time
+         AND @p3 > existing.start_time
+         AND (@p4 IS NULL OR existing.id <> @p4)
+       ORDER BY requested.show_date`,
       [dates, startTime, endTime, excludeId || null]
     );
 
-    if (conflicts[0]) {
-      await client.query('ROLLBACK');
-      return { conflict: conflicts[0] };
-    }
-
+    if (conflicts[0]) return { conflict: conflicts[0] };
     const result = await client.query(query, values);
-    await client.query('COMMIT');
-    return { rows: result.rows };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
+    return { rows: result.recordset };
+  });
 }
 
 function conflictMessage(conflict) {
@@ -136,13 +152,19 @@ router.post('/image', requireAuth, upload.single('image'), (req, res) => {
 router.get('/', async (req, res) => {
   const { day } = req.query;
   try {
-    const { rows } = day
+    const { recordset } = day
       ? await pool.query(
-          'SELECT * FROM shows WHERE day_of_week = $1 OR $1 = ANY(days_of_week) ORDER BY start_time',
+          `SELECT * FROM shows
+           WHERE day_of_week = @p1
+              OR EXISTS (
+                SELECT 1 FROM OPENJSON(days_of_week) saved_day
+                WHERE saved_day.[value] = @p1
+              )
+           ORDER BY start_time`,
           [day]
         )
       : await pool.query('SELECT * FROM shows ORDER BY day_of_week, start_time');
-    res.json(rows);
+    res.json(recordset.map(formatShow));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not load shows.' });
@@ -177,7 +199,8 @@ router.post('/', requireAuth, async (req, res) => {
       startTime,
       endTime,
       query: `INSERT INTO shows (day_of_week, days_of_week, show_dates, start_time, end_time, start_date, end_date, name, title, description, image, presenter, initials, tone)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+              OUTPUT INSERTED.*
+              VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14)`,
       values: [daysOfWeek[0], daysOfWeek, dates, startTime, endTime, dates[0], dates[dates.length - 1], name, title, description, image, presenter, initials, tone || 'blue']
     });
     if (result.conflict) {
@@ -197,7 +220,7 @@ router.post('/', requireAuth, async (req, res) => {
       icon: 'blue',
       actor: actorName(req)
     });
-    res.status(201).json(rows[0]);
+    res.status(201).json(formatShow(rows[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not create show.' });
@@ -232,10 +255,11 @@ router.put('/:id', requireAuth, async (req, res) => {
       startTime,
       endTime,
       excludeId: req.params.id,
-      query: `UPDATE shows SET day_of_week=$1, days_of_week=$2, show_dates=$3, start_time=$4, end_time=$5,
-              start_date=$6, end_date=$7, name=$8, title=$9, description=$10, image=$11,
-              presenter=$12, initials=$13, tone=$14, updated_at=now()
-              WHERE id=$15 RETURNING *`,
+      query: `UPDATE shows SET day_of_week=@p1, days_of_week=@p2, show_dates=@p3, start_time=@p4, end_time=@p5,
+              start_date=@p6, end_date=@p7, name=@p8, title=@p9, description=@p10, image=@p11,
+              presenter=@p12, initials=@p13, tone=@p14, updated_at=SYSUTCDATETIME()
+              OUTPUT INSERTED.*
+              WHERE id=@p15`,
       values: [daysOfWeek[0], daysOfWeek, dates, startTime, endTime, dates[0], dates[dates.length - 1], name, title, description, image, presenter, initials, tone, req.params.id]
     });
     if (result.conflict) {
@@ -256,7 +280,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       icon: 'blue',
       actor: actorName(req)
     });
-    res.json(rows[0]);
+    res.json(formatShow(rows[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not update show.' });
@@ -266,11 +290,11 @@ router.put('/:id', requireAuth, async (req, res) => {
 // DELETE /api/shows/:id  (requires login)
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const { rows, rowCount } = await pool.query('DELETE FROM shows WHERE id = $1 RETURNING name', [req.params.id]);
-    if (!rowCount) return res.status(404).json({ error: 'Show not found.' });
+    const { recordset } = await pool.query('DELETE FROM shows OUTPUT DELETED.name WHERE id = @p1', [req.params.id]);
+    if (!recordset.length) return res.status(404).json({ error: 'Show not found.' });
     await recordActivity({
       type: 'show_deleted',
-      title: `${rows[0].name} was deleted`,
+      title: `${recordset[0].name} was deleted`,
       description: 'A show was removed from the schedule',
       category: 'Schedule',
       icon: 'blue',

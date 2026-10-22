@@ -27,118 +27,22 @@ The project is built using HTML, CSS, and JavaScript, with a responsive layout a
 - **JavaScript** — Site-wide browser interactions and functionality.
 - **PNG/JPG and other web images** — Station branding and visual content.
 
-## Project Structure
+The static pages do not require a build step. The Node.js API in `server/` uses Azure SQL Database.
 
-```text
-OpenMicFM-Website/
-├── index.html
-├── about.html
-├── contact.html
-├── shows.html
-├── news.html
-├── local.html
-├── national-news.html
-├── sports.html
-├── entertainment.html
-├── press-office.html
-├── whats-new.html
-├── css/
-│   └── site.css
-├── js/
-│   └── site.js
-└── images/
-    └── logo.png
-```
+## Connect the API to Azure SQL
 
-*Additional images and assets may be present in the `images/` directory.*
+1. In `server/`, copy `.env.example` to `.env` and set `SQL_PASSWORD` and a long random `JWT_SECRET`.
+2. Install and start the API from the repository root:
 
-## Getting Started
-
-### Prerequisites
-
-You only need a modern web browser. No Node.js installation, package manager, or build tools are required.
-
-### Run Locally
-
-1. Clone the repository:
-
-   ```bash
-   git clone YOUR_REPOSITORY_URL
+   ```sh
+   npm --prefix server install
+   npm --prefix server start
    ```
 
-2. Open the project folder.
-3. Open `index.html` in your browser.
+   For App Service deployments from the repository root, `npm install` runs the root `postinstall` script to restore the server dependencies.
 
-Alternatively, use Visual Studio Code with the Live Server extension to preview the website through a local development server.
+3. The API creates the required tables in `maindb` on startup; this does not copy records from the old PostgreSQL database. To add the sample admin account and content, run `npm --prefix server run seed`.
+4. In Azure Portal, open the App Service at <https://openmicfm-dxcvewf4arf0djd0.southafricanorth-01.azurewebsites.net/> and add `SQL_SERVER`, `SQL_PORT`, `SQL_DATABASE`, `SQL_USER`, `SQL_PASSWORD`, `JWT_SECRET`, and `CLIENT_ORIGIN` under **Settings > Environment variables**. Set `CLIENT_ORIGIN` to the frontend's origin with no trailing slash; if this App Service also serves the frontend, use `https://openmicfm-dxcvewf4arf0djd0.southafricanorth-01.azurewebsites.net`. Restart the app after saving.
+5. In the Azure SQL logical server firewall settings, allow the App Service's outbound IP addresses. Keep the database password in App Service settings or Key Vault, never in source control.
 
-## Development Guidelines
-
-### Shared Styling
-
-Global styles belong in `css/site.css`. Use this file for shared elements such as:
-
-- Header and navigation
-- Logo sizing and positioning
-- Typography and colours
-- Buttons and interactive controls
-- Page layouts and responsive behaviour
-
-Keep page-specific styling separate when a page genuinely requires a different layout.
-
-### JavaScript
-
-Use `js/site.js` for reusable browser-side behaviour that applies across the website. Keep functionality simple and avoid duplicating site-wide logic across individual pages.
-
-### Navigation
-
-Use relative links for internal pages:
-
-```html
-<a href="about.html">About</a>
-<a href="shows.html">Shows</a>
-<a href="contact.html">Contact</a>
-```
-
-This keeps navigation compatible with direct browser access and static hosting.
-
-### Branding
-
-The primary station logo is located at:
-
-```text
-images/logo.png
-```
-
-The shared header logo dimensions are controlled by the `.site-header .custom-logo-link img` selector in `css/site.css`.
-
-## Deployment
-
-The website can be deployed to any static web hosting provider, including:
-
-- Microsoft Azure Static Web Apps
-- GitHub Pages
-- Netlify
-- Cloudflare Pages
-
-Deployment requirements depend on the selected provider. A static hosting service is sufficient for the website's HTML, CSS, JavaScript, and image assets.
-
-## Future Improvements
-
-Potential enhancements include:
-
-- Live radio streaming integration.
-- Dynamic news and sports content.
-- Improved search and content discovery.
-- Accessibility and performance optimisation.
-- Integration with the OpenMicFM mobile application and backend API.
-- A content management system for publishing updates more efficiently.
-
-## Project Purpose
-
-OpenMicFM aims to strengthen community engagement by providing a central online destination for radio programming, local news, sports, entertainment, and station updates.
-
----
-
-**OpenMicFM — The Station With Progress.**
-
-Made for the community of Gqeberha, South Africa.
+For local development, set `CLIENT_ORIGIN=http://127.0.0.1:5500` and ensure the Azure SQL server firewall allows your current public IP address. The connection uses encryption and validates the server certificate.
