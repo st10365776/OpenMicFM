@@ -41,17 +41,17 @@ router.get('/', async (req, res) => {
   const conditions = [];
   const values = [];
 
-  if (status) { values.push(status); conditions.push(`status = $${values.length}`); }
-  if (type) { values.push(type); conditions.push(`type = $${values.length}`); }
+  if (status) { values.push(status); conditions.push(`status = @p${values.length}`); }
+  if (type) { values.push(type); conditions.push(`type = @p${values.length}`); }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   try {
-    const { rows } = await pool.query(
+    const { recordset } = await pool.query(
       `SELECT * FROM posts ${where} ORDER BY COALESCE(published_at, created_at) DESC`,
       values
     );
-    res.json(rows);
+    res.json(recordset);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not load posts.' });
@@ -61,9 +61,10 @@ router.get('/', async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   const { type, title, excerpt, body, status, image = '' } = req.body;
   try {
-    const { rows } = await pool.query(
+    const { recordset } = await pool.query(
       `INSERT INTO posts (type, title, slug, excerpt, body, image, status, author_id, published_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+       OUTPUT INSERTED.*
+       VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9)`,
       [
         type,
         title,
@@ -84,7 +85,7 @@ router.post('/', requireAuth, async (req, res) => {
       icon: type === 'Sport' ? 'green' : 'blue',
       actor: actorName(req)
     });
-    res.status(201).json(rows[0]);
+    res.status(201).json(recordset[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not create post.' });
@@ -94,14 +95,15 @@ router.post('/', requireAuth, async (req, res) => {
 router.put('/:id', requireAuth, async (req, res) => {
   const { type, title, excerpt, body, status, image = '' } = req.body;
   try {
-    const { rows } = await pool.query(
-      `UPDATE posts SET type=$1, title=$2, slug=$3, excerpt=$4, body=$5, image=$6, status=$7,
-       published_at = CASE WHEN $7 = 'Published' AND published_at IS NULL THEN now() ELSE published_at END,
-       updated_at = now()
-       WHERE id=$8 RETURNING *`,
+    const { recordset } = await pool.query(
+      `UPDATE posts SET type=@p1, title=@p2, slug=@p3, excerpt=@p4, body=@p5, image=@p6, status=@p7,
+       published_at = CASE WHEN @p7 = 'Published' AND published_at IS NULL THEN SYSUTCDATETIME() ELSE published_at END,
+       updated_at = SYSUTCDATETIME()
+       OUTPUT INSERTED.*
+       WHERE id=@p8`,
       [type, title, slugify(title), excerpt, body, image, status, req.params.id]
     );
-    if (!rows[0]) return res.status(404).json({ error: 'Post not found.' });
+    if (!recordset[0]) return res.status(404).json({ error: 'Post not found.' });
     await recordActivity({
       type: status === 'Published' ? 'post_published' : 'post_updated',
       title: `${title} was updated`,
@@ -110,7 +112,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       icon: type === 'Sport' ? 'green' : 'blue',
       actor: actorName(req)
     });
-    res.json(rows[0]);
+    res.json(recordset[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not update post.' });
@@ -119,14 +121,14 @@ router.put('/:id', requireAuth, async (req, res) => {
 
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const { rows, rowCount } = await pool.query('DELETE FROM posts WHERE id = $1 RETURNING title, type', [req.params.id]);
-    if (!rowCount) return res.status(404).json({ error: 'Post not found.' });
+    const { recordset } = await pool.query('DELETE FROM posts OUTPUT DELETED.title, DELETED.type WHERE id = @p1', [req.params.id]);
+    if (!recordset.length) return res.status(404).json({ error: 'Post not found.' });
     await recordActivity({
       type: 'post_deleted',
-      title: `${rows[0].title} was deleted`,
+      title: `${recordset[0].title} was deleted`,
       description: 'A newsroom story was removed',
-      category: rows[0].type,
-      icon: rows[0].type === 'Sport' ? 'green' : 'blue',
+      category: recordset[0].type,
+      icon: recordset[0].type === 'Sport' ? 'green' : 'blue',
       actor: actorName(req)
     });
     res.status(204).end();

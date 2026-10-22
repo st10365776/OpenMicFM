@@ -15,20 +15,20 @@ router.get('/', requireAuth, async (req, res) => {
         `SELECT id, activity_type, title, description, category, icon, actor_name, created_at
          FROM admin_activity
          ORDER BY created_at DESC
-         LIMIT 10`
+         OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY`
       ),
       pool.query(
         `SELECT full_name, initials, email, role
          FROM admin_users
-         WHERE id = $1`,
+         WHERE id = @p1`,
         [req.user.id]
       )
     ]);
 
     res.json({
-      metrics: metrics.rows,
-      activity: activity.rows,
-      user: user.rows[0] || null
+      metrics: metrics.recordset,
+      activity: activity.recordset,
+      user: user.recordset[0] || null
     });
   } catch (error) {
     console.error(error);
