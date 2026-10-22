@@ -1,27 +1,31 @@
-# The Station With Progresss
+# OpenMicFM Website
 
-Static site for The Station With Progresss.
+OpenMicFM is the official website for **The Station With Progress** — a community radio station based in Gqeberha, South Africa. The website provides listeners with access to station information, radio shows, local and national news, sports updates, entertainment, and the latest community developments.
 
-## Project map
+The project is built using HTML, CSS, and JavaScript, with a responsive layout and shared styling across multiple pages.
 
-- `index.html`: homepage
-- `about.html`: about page
-- `contact.html`: contact page
-- `shows.html`: shows page
-- `news.html`: news page
-- `local.html`: local news page
-- `national-news.html`: national news page
-- `sports.html`: sports page
-- `entertainment.html`, `press-office.html`, `whats-new.html`: supporting pages
-- `css/site.css`: shared site layout, branding, controls, and responsive rules
-- `js/site.js`: small site-wide browser behavior
-- `images/`: images used by the pages
+## Features
 
-## Editing guide
+- **Homepage:** An introduction to OpenMicFM and its latest content.
+- **About:** Information about the station, its mission, and its community.
+- **Shows:** A dedicated page for radio programmes and show information.
+- **News:** News articles and updates relevant to listeners.
+- **Local News:** Coverage of local developments and community stories.
+- **National News:** News and current affairs from across South Africa.
+- **Sports:** Sports news, updates, and coverage.
+- **Entertainment:** Entertainment stories and updates.
+- **Press Office:** A dedicated section for press-related information.
+- **What's New:** The latest updates and developments from the station.
+- **Contact:** Contact information and a way for visitors to connect with the station.
+- **Responsive design:** Shared styling designed to support different screen sizes.
+- **Consistent navigation:** Relative HTML links allow pages to work together without a frontend framework or build process.
 
-Put a rule in `css/site.css` when it affects more than one page. Keep page-specific rules in the page's own content only when the page genuinely differs. Update navigation with relative `.html` links so pages continue working when opened directly from disk.
+## Technology Stack
 
-The primary logo is `images/logo.png`. Shared header logo sizing is controlled by `.site-header .custom-logo-link img` in `css/site.css`.
+- **HTML5** — Page structure and content.
+- **CSS3** — Layout, branding, responsive styling, and reusable UI components.
+- **JavaScript** — Site-wide browser interactions and functionality.
+- **PNG/JPG and other web images** — Station branding and visual content.
 
 The static pages do not require a build step. The Node.js API in `server/` uses Azure SQL Database.
 
