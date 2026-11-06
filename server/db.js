@@ -94,6 +94,19 @@ async function initialize() {
       );
     END;
 
+    IF OBJECT_ID(N'dbo.listener_favorites', N'U') IS NULL
+    BEGIN
+      CREATE TABLE dbo.listener_favorites (
+        listener_id INT NOT NULL,
+        favorite_type NVARCHAR(16) NOT NULL,
+        favorite_value NVARCHAR(200) NOT NULL,
+        CONSTRAINT PK_listener_favorites PRIMARY KEY (listener_id, favorite_type, favorite_value),
+        CONSTRAINT FK_listener_favorites_listener FOREIGN KEY (listener_id)
+          REFERENCES dbo.listeners(id) ON DELETE CASCADE,
+        CONSTRAINT CK_listener_favorites_type CHECK (favorite_type IN (N'show', N'presenter'))
+      );
+    END;
+
     IF OBJECT_ID(N'dbo.shows', N'U') IS NULL
     BEGIN
       CREATE TABLE dbo.shows (

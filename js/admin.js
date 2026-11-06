@@ -122,6 +122,43 @@
     }
 
 
+    function setupShowTimeSelector(timeRange = '') {
+        const timeSelect = document.getElementById('field-time');
+        const customFields = document.getElementById('custom-time-fields');
+        const customStart = document.getElementById('field-custom-start');
+        const customEnd = document.getElementById('field-custom-end');
+
+        if (!timeSelect || !customFields || !customStart || !customEnd) {
+            return;
+        }
+
+        const updateCustomFields = () => {
+            const isCustom = timeSelect.value === 'custom';
+            customFields.hidden = !isCustom;
+            customStart.required = isCustom;
+            customEnd.required = isCustom;
+        };
+
+        const presetExists = [...timeSelect.options].some(option =>
+            option.value === timeRange && option.value !== 'custom'
+        );
+
+        if (timeRange) {
+            if (presetExists) {
+                timeSelect.value = timeRange;
+            } else {
+                const { start, end } = getTimeParts(timeRange);
+                timeSelect.value = 'custom';
+                customStart.value = start;
+                customEnd.value = end;
+            }
+        }
+
+        timeSelect.addEventListener('change', updateCustomFields);
+        updateCustomFields();
+    }
+
+
     async function apiRequest(path, options = {}) {
 
         const headers = {
@@ -1471,13 +1508,29 @@
                 >
             </div>
 
-            <div class="form-field">
+            <div class="form-field full">
                 <label for="field-time">Time slot</label>
-                <input
-                    id="field-time"
-                    required
-                    placeholder="09:00 – 12:00"
-                >
+                <select id="field-time" required>
+                    <option value="" selected disabled>Select a time slot</option>
+                    <option value="06:00 – 09:00">06:00 – 09:00</option>
+                    <option value="09:00 – 12:00">09:00 – 12:00</option>
+                    <option value="12:00 – 15:00">12:00 – 15:00</option>
+                    <option value="15:00 – 18:00">15:00 – 18:00</option>
+                    <option value="18:00 – 20:00">18:00 – 20:00</option>
+                    <option value="20:00 – 22:00">20:00 – 22:00</option>
+                    <option value="custom">Custom time…</option>
+                </select>
+
+                <div class="custom-time-fields" id="custom-time-fields" hidden>
+                    <div>
+                        <label for="field-custom-start">Start time</label>
+                        <input id="field-custom-start" type="time">
+                    </div>
+                    <div>
+                        <label for="field-custom-end">End time</label>
+                        <input id="field-custom-end" type="time">
+                    </div>
+                </div>
             </div>
 
             <div class="form-field full">
@@ -1857,6 +1910,7 @@
 
         if (type === 'show') {
             setupShowDatePicker([]);
+            setupShowTimeSelector();
         }
 
         elements.modal.hidden = false;
@@ -1912,26 +1966,15 @@
 
             setupShowDatePicker(item.show_dates || []);
 
-            const timeField =
-                document.getElementById(
-                    'field-time'
-                );
-
-            if (timeField) {
-
-                timeField.value =
-                    item.time ||
-                    (
-                        item.start_time &&
-                        item.end_time
-                            ? `${String(
-                                item.start_time
-                            ).slice(0, 5)} – ${String(
-                                item.end_time
-                            ).slice(0, 5)}`
-                            : ''
-                    );
-            }
+            setupShowTimeSelector(
+                item.time ||
+                (
+                    item.start_time &&
+                    item.end_time
+                        ? `${String(item.start_time).slice(0, 5)} – ${String(item.end_time).slice(0, 5)}`
+                        : ''
+                )
+            );
 
 
             const nameField =
@@ -2473,8 +2516,12 @@
 
         const dates = [...pickerDates].sort();
 
-        const time =
+        const selectedTime =
             getFieldValue('field-time');
+
+        const time = selectedTime === 'custom'
+            ? `${getFieldValue('field-custom-start')} – ${getFieldValue('field-custom-end')}`
+            : selectedTime;
 
         const {
             start,
@@ -2485,7 +2532,7 @@
         if (!start || !end) {
 
             throw new Error(
-                'Please enter a valid time range, for example 09:00 – 12:00.'
+                'Please select a time slot or enter valid custom start and end times.'
             );
         }
 

@@ -13,6 +13,7 @@ The project is built using HTML, CSS, and JavaScript, with a responsive layout a
 - **Local News:** Coverage of local developments and community stories.
 - **National News:** News and current affairs from across South Africa.
 - **Sports:** Sports news, updates, and coverage.
+- **Listener profiles:** Signed-in listeners can save favourite shows and presenters from the current schedule.
 - **Entertainment:** Entertainment stories and updates.
 - **Press Office:** A dedicated section for press-related information.
 - **What's New:** The latest updates and developments from the station.
@@ -42,7 +43,11 @@ The static pages do not require a build step. The Node.js API in `server/` uses 
    For App Service deployments from the repository root, `npm install` runs the root `postinstall` script to restore the server dependencies.
 
 3. The API creates the required tables in `maindb` on startup; this does not copy records from the old PostgreSQL database. To add the sample admin account and content, run `npm --prefix server run seed`.
-4. In Azure Portal, open the App Service at <https://openmicfm-dxcvewf4arf0djd0.southafricanorth-01.azurewebsites.net/> and add `SQL_SERVER`, `SQL_PORT`, `SQL_DATABASE`, `SQL_USER`, `SQL_PASSWORD`, `JWT_SECRET`, and `CLIENT_ORIGIN` under **Settings > Environment variables**. Set `CLIENT_ORIGIN` to the frontend's origin with no trailing slash; if this App Service also serves the frontend, use `https://openmicfm-dxcvewf4arf0djd0.southafricanorth-01.azurewebsites.net`. Restart the app after saving.
+4. In Azure Portal, open the App Service at <https://openmicfm-dxcvewf4arf0djd0.southafricanorth-01.azurewebsites.net/> and add `SQL_SERVER`, `SQL_PORT`, `SQL_DATABASE`, `SQL_USER`, `SQL_PASSWORD`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, and `CLIENT_ORIGIN` under **Settings > Environment variables**. Set `CLIENT_ORIGIN` to the frontend's origin with no trailing slash; if this App Service also serves the frontend, use `https://openmicfm-dxcvewf4arf0djd0.southafricanorth-01.azurewebsites.net`. Restart the app after saving.
 5. In the Azure SQL logical server firewall settings, allow the App Service's outbound IP addresses. Keep the database password in App Service settings or Key Vault, never in source control.
 
 For local development, set `CLIENT_ORIGIN=http://127.0.0.1:5500` and ensure the Azure SQL server firewall allows your current public IP address. The connection uses encryption and validates the server certificate.
+
+## Listener accounts and Google sign-in
+
+Listeners can create an account or sign in at `listener-auth.html`; successful sign-in opens `listener-profile.html`, where they can select favourite shows and presenters. Preferences are stored with the listener account through the authenticated `/api/listeners/favorites` endpoint. To enable Google sign-in, create a **Web application** OAuth client in Google Cloud Console, add the website's origins to its authorized JavaScript origins, and set `GOOGLE_CLIENT_ID` in the API environment (and `server/.env` for local API development). The client ID is public; do not put a Google client secret in the website. Google credentials are verified by the API before a listener is signed in or created.

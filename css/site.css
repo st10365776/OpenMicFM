@@ -121,6 +121,19 @@ header.site-header {
   white-space: nowrap;
 }
 
+.shared-site-login {
+  background: var(--color-brand);
+  border-radius: var(--radius-control);
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.shared-site-login:hover,
+.shared-site-login:focus-visible {
+  background: var(--color-brand-dark);
+  color: #fff !important;
+}
+
 @media (max-width: 800px) {
   .shared-site-header { padding: 6px 24px; }
   .shared-site-header-inner { flex-wrap: wrap; }
@@ -130,6 +143,7 @@ header.site-header {
   .shared-site-nav { align-items: stretch; display: none; flex-basis: 100%; flex-direction: column; gap: 0; }
   .shared-site-nav.is-open { display: flex; }
   .shared-site-nav a, .shared-site-dropdown summary { padding: 12px 0; }
+  .shared-site-nav .shared-site-login { align-self: flex-start; margin: 8px 0; padding: 10px 16px; }
   .shared-site-dropdown-menu { position: static; }
   .shared-site-dropdown-menu a { padding: 10px 14px; }
   .shared-site-listen { margin-left: auto; }

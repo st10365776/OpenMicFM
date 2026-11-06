@@ -1779,6 +1779,17 @@ button {
     font-weight: 700;
 }
 
+.custom-time-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.custom-time-fields[hidden] {
+    display: none;
+}
+
 /* Multi-date picker */
 
 .date-picker {
