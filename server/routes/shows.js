@@ -40,10 +40,21 @@ function deriveDaysOfWeek(dates) {
   return [...new Set(dates.map(date => names[new Date(`${date}T00:00:00Z`).getUTCDay()]))];
 }
 
+function formatTime(value) {
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    return `${String(value.getUTCHours()).padStart(2, '0')}:${String(value.getUTCMinutes()).padStart(2, '0')}`;
+  }
+
+  const match = String(value || '').match(/(?:T)?([01]\d|2[0-3]):([0-5]\d)/);
+  return match ? `${match[1]}:${match[2]}` : value;
+}
+
 function formatShow(show) {
   if (!show) return show;
   return {
     ...show,
+    start_time: formatTime(show.start_time),
+    end_time: formatTime(show.end_time),
     days_of_week: JSON.parse(show.days_of_week || '[]'),
     show_dates: JSON.parse(show.show_dates || '[]')
   };
@@ -131,7 +142,7 @@ function conflictMessage(conflict) {
     timeZone: 'UTC'
   }).format(new Date(`${conflict.conflict_date}T00:00:00Z`));
 
-  return `There's already a show on ${date} from ${String(conflict.start_time).slice(0, 5)} to ${String(conflict.end_time).slice(0, 5)}: ${conflict.name}. Choose another time or date.`;
+  return `There's already a show on ${date} from ${formatTime(conflict.start_time)} to ${formatTime(conflict.end_time)}: ${conflict.name}. Choose another time or date.`;
 }
 
 router.post('/image', requireAuth, upload.single('image'), (req, res) => {
