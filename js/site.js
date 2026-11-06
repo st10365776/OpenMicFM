@@ -15,6 +15,11 @@
 
     var menuToggle = navMount.querySelector('.shared-site-menu-toggle');
     var menu = navMount.querySelector('.shared-site-nav');
+    var listenerLink = navMount.querySelector('.shared-site-login');
+    if (listenerLink && localStorage.getItem('openmicfmListenerToken')) {
+      listenerLink.href = (isArticlePage ? '../' : './') + 'listener-profile.html';
+      listenerLink.textContent = 'My profile';
+    }
     var listenLink = navMount.querySelector('.shared-site-listen');
     if (listenLink) {
       document.querySelectorAll('.elementor-page-299 .elementor-widget-button a').forEach(function (button) {
@@ -31,6 +36,18 @@
     }
   }
 
+  window.addEventListener('storage', function (event) {
+    if (event.key === 'openmicfmListenerToken') {
+      var listenerLink = document.querySelector('#site-navigation .shared-site-login');
+      if (listenerLink) {
+        var isSignedIn = Boolean(event.newValue);
+        listenerLink.href = (window.location.pathname.indexOf('/news-articles/') !== -1 ? '../' : './') +
+          (isSignedIn ? 'listener-profile.html' : 'listener-auth.html');
+        listenerLink.textContent = isSignedIn ? 'My profile' : 'Listener Login';
+      }
+    }
+  });
+
   var navMount = document.getElementById('site-navigation');
   if (navMount) {
     document.querySelectorAll('header.site-header').forEach(function (legacyHeader) {
@@ -39,7 +56,7 @@
 
     var isArticlePage = window.location.pathname.indexOf('/news-articles/') !== -1;
     var navPath = isArticlePage ? '../nav.html' : './nav.html';
-    var fallbackNavigation = '<header class="shared-site-header" id="site-navigation-header"><div class="shared-site-header-inner"><a class="shared-site-logo" href="' + (isArticlePage ? '../' : './') + 'index.html" aria-label="OpenMicFM home"><img src="' + (isArticlePage ? '../' : './') + 'images/logo.png" alt="OpenMicFM logo"></a><button class="shared-site-menu-toggle" type="button" aria-expanded="false" aria-controls="shared-site-nav">Menu</button><nav class="shared-site-nav" id="shared-site-nav" aria-label="Primary navigation"><a href="' + (isArticlePage ? '../' : './') + 'index.html">Home</a><a href="' + (isArticlePage ? '../' : './') + 'shows.html">Shows</a><a href="' + (isArticlePage ? '../' : './') + 'sports.html">Sport</a><details class="shared-site-dropdown"><summary>News</summary><div class="shared-site-dropdown-menu"><a href="' + (isArticlePage ? '../' : './') + 'local.html">Local News</a><a href="' + (isArticlePage ? '../' : './') + 'national-news.html">National News</a></div></details><a href="' + (isArticlePage ? '../' : './') + 'about.html">About</a><a href="' + (isArticlePage ? '../' : './') + 'contact.html">Contact</a></nav><a class="shared-site-listen" href="http://p.onlineradiobox.com/za/nkqubela/player/?cs=za.nkqubela&amp;played=1" target="_blank" rel="noopener noreferrer">Listen Now</a></div></header>';
+    var fallbackNavigation = '<header class="shared-site-header" id="site-navigation-header"><div class="shared-site-header-inner"><a class="shared-site-logo" href="' + (isArticlePage ? '../' : './') + 'index.html" aria-label="OpenMicFM home"><img src="' + (isArticlePage ? '../' : './') + 'images/logo.png" alt="OpenMicFM logo"></a><button class="shared-site-menu-toggle" type="button" aria-expanded="false" aria-controls="shared-site-nav">Menu</button><nav class="shared-site-nav" id="shared-site-nav" aria-label="Primary navigation"><a href="' + (isArticlePage ? '../' : './') + 'index.html">Home</a><a href="' + (isArticlePage ? '../' : './') + 'shows.html">Shows</a><a href="' + (isArticlePage ? '../' : './') + 'sports.html">Sport</a><details class="shared-site-dropdown"><summary>News</summary><div class="shared-site-dropdown-menu"><a href="' + (isArticlePage ? '../' : './') + 'local.html">Local News</a><a href="' + (isArticlePage ? '../' : './') + 'national-news.html">National News</a></div></details><a href="' + (isArticlePage ? '../' : './') + 'about.html">About</a><a href="' + (isArticlePage ? '../' : './') + 'contact.html">Contact</a><a class="shared-site-login" href="' + (isArticlePage ? '../' : './') + 'listener-auth.html">Listener Login</a></nav><a class="shared-site-listen" href="http://p.onlineradiobox.com/za/nkqubela/player/?cs=za.nkqubela&amp;played=1" target="_blank" rel="noopener noreferrer">Listen Now</a></div></header>';
     if (typeof fetch !== 'function') {
       renderNavigation(navMount, isArticlePage, fallbackNavigation);
     } else {

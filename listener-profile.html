@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <title>My Profile | OpenMicFM</title>
+  <link rel="stylesheet" href="./css/site.css">
+  <link rel="stylesheet" href="./css/listener-profile.css">
+</head>
+<body class="listener-profile-page">
+  <div id="site-navigation"></div>
+  <main class="listener-profile-main">
+    <header class="listener-profile-heading">
+      <div>
+        <p class="listener-profile-kicker">YOUR OPENMICFM ACCOUNT</p>
+        <h1>Your sound.<br><em>Your favourites.</em></h1>
+        <p class="listener-profile-intro">Pick the shows and presenters you love. We’ll keep them close to home.</p>
+      </div>
+      <button class="listener-profile-signout" id="signout-button" type="button">Sign out</button>
+    </header>
+
+    <section class="listener-profile-account" aria-label="Listener account">
+      <span class="listener-profile-avatar" id="profile-avatar" aria-hidden="true">O</span>
+      <div>
+        <h2 id="profile-name">Your profile</h2>
+        <p id="profile-email"></p>
+      </div>
+      <span class="listener-profile-account-label">LISTENER</span>
+    </section>
+
+    <section class="listener-profile-selection" aria-labelledby="favourites-title">
+      <div class="listener-profile-section-heading">
+        <div>
+          <p class="listener-profile-kicker">MAKE IT YOURS</p>
+          <h2 id="favourites-title">Choose your favourites</h2>
+          <p>Select any shows and presenters to add them to your profile.</p>
+        </div>
+        <button class="listener-profile-save" id="save-favourites" type="button" disabled>Save favourites</button>
+      </div>
+
+      <p class="listener-profile-status" id="profile-status" role="status" aria-live="polite">Loading your profile…</p>
+      <div id="favourites-content" hidden>
+        <section class="listener-profile-group" aria-labelledby="shows-title">
+          <div class="listener-profile-group-heading">
+            <h3 id="shows-title">Shows</h3>
+            <span id="show-count">0 selected</span>
+          </div>
+          <div class="listener-profile-options" id="show-options"></div>
+        </section>
+
+        <section class="listener-profile-group" aria-labelledby="presenters-title">
+          <div class="listener-profile-group-heading">
+            <h3 id="presenters-title">Presenters</h3>
+            <span id="presenter-count">0 selected</span>
+          </div>
+          <div class="listener-profile-presenters" id="presenter-options"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="./js/site.js"></script>
+  <script src="./js/listener-profile.js"></script>
+</body>
+</html>
