@@ -487,11 +487,27 @@ input[type="submit"] {
   width: 72px;
 }
 
+.page-id-709 .uagb-block-b21c3611.alignfull,
+.page-id-713 .uagb-block-bda6d686.alignfull {
+  margin-inline: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.page-id-709 .uagb-block-b21c3611 .uagb-container-inner-blocks-wrap,
+.page-id-713 .uagb-block-bda6d686 .uagb-container-inner-blocks-wrap {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
 .openmic-news-search {
   display: grid;
   gap: 8px;
   margin: 0 0 24px;
   max-width: 560px;
+  min-width: 0;
+  width: 100%;
 }
 
 .openmic-news-search label {
@@ -509,6 +525,7 @@ input[type="submit"] {
   min-height: 48px;
   padding: 10px 14px;
   width: 100%;
+  min-width: 0;
 }
 
 .openmic-news-search input:focus-visible {
@@ -520,21 +537,25 @@ input[type="submit"] {
 .page-id-709 .uagb-post-grid,
 .page-id-713 .uagb-post-grid {
   display: grid !important;
-  gap: 22px;
+  gap: 18px;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   margin: 0 !important;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
 }
 
 .page-id-709 .uagb-post__inner-wrap,
 .page-id-713 .uagb-post__inner-wrap {
   background: #fff !important;
   border: 1px solid #ded8cf;
-  border-radius: 18px !important;
-  box-shadow: 0 14px 30px rgba(34, 28, 22, 0.08);
+  border-radius: 12px !important;
+  box-shadow: 0 8px 22px rgba(34, 28, 22, 0.08);
   display: flex !important;
   flex-direction: column;
   height: auto !important;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
   padding: 0 !important;
   position: relative;
@@ -543,8 +564,8 @@ input[type="submit"] {
 
 .page-id-709 .uagb-post__inner-wrap:hover,
 .page-id-713 .uagb-post__inner-wrap:hover {
-  box-shadow: 0 20px 42px rgba(34, 28, 22, 0.15);
-  transform: translateY(-5px);
+  box-shadow: 0 14px 30px rgba(34, 28, 22, 0.14);
+  transform: translateY(-3px);
 }
 
 .page-id-709 .uagb-post__inner-wrap::before,
@@ -565,8 +586,8 @@ input[type="submit"] {
 
 .page-id-709 .uagb-post__image,
 .page-id-713 .uagb-post__image {
-  flex: 0 0 190px;
-  height: 190px !important;
+  flex: 0 0 160px;
+  height: 160px !important;
   margin: 0 !important;
   order: -1;
   overflow: hidden;
@@ -574,11 +595,11 @@ input[type="submit"] {
 }
 
 .page-id-713 article.uagb-post__inner-wrap .uagb-post__image {
-  height: 190px !important;
+  height: 160px !important;
 }
 
 body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-post__image {
-  height: 190px !important;
+  height: 160px !important;
 }
 
 .page-id-709 .uagb-post__image::after,
@@ -613,17 +634,16 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
 .page-id-709 .uagb-post__title,
 .page-id-713 .uagb-post__title {
   margin: 0 !important;
-  padding: 20px 20px 8px;
+  padding: 16px 16px 8px;
 }
 
 .page-id-709 .uagb-post__title a,
 .page-id-713 .uagb-post__title a {
   color: #211f1c !important;
   font-family: 'Work Sans', sans-serif;
-  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
-  line-height: 1.08;
+  font-size: clamp(1rem, 1.25vw, 1.15rem);
+  line-height: 1.25;
   text-decoration: none;
-  text-transform: uppercase;
 }
 
 .page-id-709 .uagb-post-grid-byline,
@@ -636,7 +656,7 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
   gap: 8px 18px;
   letter-spacing: 0.04em;
   margin: 0 !important;
-  padding: 0 20px;
+  padding: 0 16px;
   text-transform: uppercase;
 }
 
@@ -654,7 +674,19 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
   font-size: 0.88rem;
   line-height: 1.55;
   margin: 0 !important;
-  padding: 14px 20px 18px;
+  padding: 12px 16px 16px;
+}
+
+.page-id-713 .uagb-post__excerpt p {
+  color: #575149 !important;
+}
+
+.page-id-709 .uagb-post__excerpt p,
+.page-id-713 .uagb-post__excerpt p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .page-id-709 .uagb-post__excerpt p,
@@ -664,7 +696,7 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
 
 .page-id-709 .uagb-post__cta,
 .page-id-713 .uagb-post__cta {
-  margin: auto 20px 20px !important;
+  margin: auto 16px 16px !important;
 }
 
 .page-id-709 .uagb-post__cta a,
@@ -1021,17 +1053,20 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
 
   display: grid;
 
-  grid-template-columns: repeat(2, minmax(0, 285px));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 
   gap: 20px;
 
-  justify-content: start;
+  justify-content: stretch;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
 
 }
 
 .page-id-713 .uagb-post__inner-wrap {
 
-  min-height: 426px;
+  min-height: 0;
 
 }
 
@@ -1046,7 +1081,7 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
 
   .page-id-713 .uagb-post-grid {
 
-    grid-template-columns: minmax(0, 285px);
+    grid-template-columns: minmax(0, 1fr);
 
   }
 
@@ -1288,8 +1323,8 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
     width: min(1200px, calc(100% - 40px));
     margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 22px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 18px;
 }
 
 .openmic-song-card {
@@ -1357,13 +1392,41 @@ body.page-id-713 .entry-content .uagb-post-grid .uagb-post__inner-wrap .uagb-pos
 
 @media (max-width: 900px) {
     .openmic-top10-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 540px) {
     .openmic-top10-grid {
-        width: min(100% - 28px, 500px);
-        grid-template-columns: 1fr;
+        width: min(100% - 28px, 600px);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .page-id-296 .uagb-block-e9f89e50 .wp-block-buttons {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+        margin-inline: auto;
+        max-width: 360px;
+        padding-inline: 16px;
+        width: 100%;
+    }
+
+    .page-id-296 .uagb-block-e9f89e50 .wp-block-button {
+        margin: 0;
+        width: 100%;
+    }
+
+    .page-id-296 .uagb-block-e9f89e50 .wp-block-button__link {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        line-height: 1.3;
+        min-height: 48px;
+        padding: 12px 16px;
+        text-align: center;
+        width: 100%;
     }
 }
